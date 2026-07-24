@@ -12,8 +12,21 @@ const config = {
   }
 };
 
-async function getPool() {
-  return await sql.connect(config);
+let poolPromise;
+
+function getPool() {
+  if (!poolPromise) {
+    poolPromise = sql.connect(config)
+      .then(pool => {
+        console.log('Connected to SQL Server');
+        return pool;
+      })
+      .catch(err => {
+        poolPromise = null; // allow retry on next request if it failed
+        throw err;
+      });
+  }
+  return poolPromise;
 }
 
 module.exports = { sql, getPool };
