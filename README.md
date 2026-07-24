@@ -78,8 +78,8 @@ taskora/
    git clone https://github.com/Zunaira48/taskora.git
    ```
 2. Open the folder in VS Code.
-3. Run it with a local dev server — recommended: the **Live Server** VS Code extension (right-click `index.html` → "Open with Live Server").
-4. No build step, no dependencies, no `npm install` required — it's pure HTML/CSS/JS.
+3. Run it with a local dev server  recommended: the **Live Server** VS Code extension (right-click `index.html` → "Open with Live Server").
+4. No build step, no dependencies, no `npm install` required it's pure HTML/CSS/JS.
 
 ---
 
