@@ -1,42 +1,50 @@
-const STORAGE_KEY = "taskora_tasks";
+const API_BASE = "http://localhost:3000/api";
 
-function getAllTasks() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-function saveAllTasks(tasks) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
-
-function addTask(taskData) {
-  const tasks = getAllTasks();
-  const newTask = createTask(taskData);
-  tasks.push(newTask);
-  saveAllTasks(tasks);
-  return newTask;
-}
-
-function updateTask(id, changes) {
-  const tasks = getAllTasks();
-  const index = tasks.findIndex(t => t.id === id);
-  if (index === -1) return null;
-
-  tasks[index] = {
-    ...tasks[index],
-    ...changes,
-    updatedAt: new Date().toISOString()
+function mapTaskFromApi(row) {
+  return {
+    id: row.Id,
+    title: row.Title,
+    category: row.Category,
+    priority: row.Priority,
+    status: row.Status,
+    dueDate: row.DueDate ? row.DueDate.slice(0, 10) : null,
+    createdAt: row.CreatedAt,
+    updatedAt: row.UpdatedAt
   };
-  saveAllTasks(tasks);
-  return tasks[index];
 }
 
-function deleteTask(id) {
-  const tasks = getAllTasks();
-  const filtered = tasks.filter(t => t.id !== id);
-  saveAllTasks(filtered);
+async function getAllTasks() {
+  const res = await fetch(`${API_BASE}/tasks`);
+  const data = await res.json();
+  return data.map(mapTaskFromApi);
 }
 
+async function addTask(taskData) {
+  const res = await fetch(`${API_BASE}/tasks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(taskData)
+  });
+  const row = await res.json();
+  return mapTaskFromApi(row);
+}
+
+async function updateTask(id, changes) {
+  const res = await fetch(`${API_BASE}/tasks/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(changes)
+  });
+  if (!res.ok) return null;
+  const row = await res.json();
+  return mapTaskFromApi(row);
+}
+
+async function deleteTask(id) {
+  await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
+}
+
+// Activity log stays on localStorage — no backend table for it yet
 const ACTIVITY_KEY = "taskora_activity";
 
 function getActivity() {
@@ -51,7 +59,5 @@ function logActivity(message) {
     message,
     timestamp: new Date().toISOString()
   });
-
-  const trimmed = activity.slice(0, 10);
-  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(trimmed));
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activity.slice(0, 10)));
 }

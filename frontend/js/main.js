@@ -1,19 +1,20 @@
-function refreshUI() {
-  renderTaskList();
-  renderStats();
+async function refreshUI() {
+  await renderTaskList();
+  await renderStats();
   renderActivity();
 }
 
-function seedTasksIfEmpty() {
-  if (getAllTasks().length > 0) return;
+async function seedTasksIfEmpty() {
+  const existing = await getAllTasks();
+  if (existing.length > 0) return;
 
-  addTask({ title: "Finish API docs", priority: "high", category: "Work" });
-  addTask({ title: "Review PR #182", priority: "medium", category: "Work" });
-  addTask({ title: "Team standup notes", priority: "low", category: "Work" });
+  await addTask({ title: "Finish API docs", priority: "high", category: "Work" });
+  await addTask({ title: "Review PR #182", priority: "medium", category: "Work" });
+  await addTask({ title: "Team standup notes", priority: "low", category: "Work" });
 }
 
-function getVisibleTasks() {
-  let tasks = getAllTasks();
+async function getVisibleTasks() {
+  let tasks = await getAllTasks();
 
   const searchTerm = document.getElementById("searchInput").value.toLowerCase().trim();
   const filterValue = document.getElementById("filterSelect").value;
@@ -48,9 +49,9 @@ function getVisibleTasks() {
   return tasks;
 }
 
-function renderTaskList() {
+async function renderTaskList() {
   const listEl = document.getElementById("todayTaskList");
-  const tasks = getVisibleTasks();
+  const tasks = await getVisibleTasks();
 
   if (tasks.length === 0) {
     listEl.innerHTML = `<li class="task-item task-item--empty">No tasks match your search or filter.</li>`;
@@ -82,26 +83,28 @@ function renderTaskList() {
 
 function attachTaskListeners() {
   document.querySelectorAll(".task-item__checkbox").forEach(checkbox => {
-    checkbox.addEventListener("change", (e) => {
+    checkbox.addEventListener("change", async (e) => {
       const id = e.target.dataset.id;
       const newStatus = e.target.checked ? "done" : "todo";
-      const task = getAllTasks().find(t => t.id === id);
-      updateTask(id, { status: newStatus });
+      const allTasks = await getAllTasks();
+      const task = allTasks.find(t => t.id === id);
+      await updateTask(id, { status: newStatus });
 
       if (newStatus === "done") {
         logActivity(`Completed "${task.title}"`);
       }
-      refreshUI();
+      await refreshUI();
     });
   });
 
   document.querySelectorAll(".task-item__delete").forEach(btn => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
-      const task = getAllTasks().find(t => t.id === id);
-      deleteTask(id);
+      const allTasks = await getAllTasks();
+      const task = allTasks.find(t => t.id === id);
+      await deleteTask(id);
       logActivity(`Deleted "${task.title}"`);
-      refreshUI();
+      await refreshUI();
     });
   });
 }
@@ -116,7 +119,7 @@ function closeModal() {
   document.getElementById("taskForm").reset();
 }
 
-function handleTaskFormSubmit(e) {
+async function handleTaskFormSubmit(e) {
   e.preventDefault();
 
   const title = document.getElementById("taskTitle").value.trim();
@@ -126,14 +129,14 @@ function handleTaskFormSubmit(e) {
   const priority = document.getElementById("taskPriority").value;
   const dueDate = document.getElementById("taskDueDate").value || null;
 
-  addTask({ title, category, priority, dueDate });
+  await addTask({ title, category, priority, dueDate });
   logActivity(`Added task "${title}"`);
   closeModal();
-  refreshUI();
+  await refreshUI();
 }
 
-function renderStats() {
-  const tasks = getAllTasks();
+async function renderStats() {
+  const tasks = await getAllTasks();
 
   const total = tasks.length;
   const completed = tasks.filter(t => t.status === "done").length;
@@ -194,7 +197,7 @@ function loadSavedTheme() {
   applyTheme(saved);
 }
 
-function switchPage(pageId) {
+async function switchPage(pageId) {
   document.querySelectorAll(".page").forEach(page => {
     page.classList.add("page--hidden");
   });
@@ -206,19 +209,19 @@ function switchPage(pageId) {
   document.querySelector(`[data-page="${pageId}"]`).classList.add("sidebar__nav-link--active");
 
   if (pageId === "page-taskboard") {
-    renderBoard();
+    await renderBoard();
   } else if (pageId === "page-statistics") {
-    renderStatistics();
+    await renderStatistics();
   } else if (pageId === "page-settings") {
     loadDefaultPriority();
     updateNotifsButton();
   } else if (pageId === "page-calendar") {
-    renderCalendar();
+    await renderCalendar();
   }
 }
 
-function renderBoard() {
-  const tasks = getAllTasks();
+async function renderBoard() {
+  const tasks = await getAllTasks();
   const columns = {
     todo: document.getElementById("board-todo"),
     inprogress: document.getElementById("board-inprogress"),
@@ -245,19 +248,20 @@ function renderBoard() {
   });
 
   document.querySelectorAll(".board__card-actions button").forEach(btn => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
       const newStatus = e.target.dataset.status;
-      updateTask(id, { status: newStatus });
-      logActivity(`Moved "${getAllTasks().find(t => t.id === id).title}" to ${newStatus}`);
-      renderBoard();
-      renderStats();
+      await updateTask(id, { status: newStatus });
+      const allTasks = await getAllTasks();
+      logActivity(`Moved "${allTasks.find(t => t.id === id).title}" to ${newStatus}`);
+      await renderBoard();
+      await renderStats();
     });
   });
 }
 
-function renderStatistics() {
-  const tasks = getAllTasks();
+async function renderStatistics() {
+  const tasks = await getAllTasks();
   const total = tasks.length;
   const completed = tasks.filter(t => t.status === "done").length;
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
@@ -303,19 +307,23 @@ function handleDefaultPriorityChange(e) {
   document.getElementById("taskPriority").value = value;
 }
 
-function handleClearData() {
+async function handleClearData() {
   const confirmed = confirm("This will permanently delete all tasks and activity. Continue?");
   if (!confirmed) return;
 
-  localStorage.removeItem("taskora_tasks");
+  const tasks = await getAllTasks();
+  for (const task of tasks) {
+    await deleteTask(task.id);
+  }
+
   localStorage.removeItem("taskora_activity");
-  refreshUI();
+  await refreshUI();
 }
 
 let calendarDate = new Date();
 calendarDate.setDate(1);
 
-function renderCalendar() {
+async function renderCalendar() {
   const grid = document.getElementById("calendarGrid");
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
@@ -329,7 +337,7 @@ function renderCalendar() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const tasks = getAllTasks();
+  const tasks = await getAllTasks();
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
@@ -428,11 +436,11 @@ function toggleReminders() {
   });
 }
 
-function checkDueTasks() {
+async function checkDueTasks() {
   if (localStorage.getItem("taskora_notifs_enabled") !== "true") return;
   if (Notification.permission !== "granted") return;
 
-  const tasks = getAllTasks();
+  const tasks = await getAllTasks();
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
 
@@ -459,12 +467,12 @@ function startReminderCheck() {
   reminderIntervalId = setInterval(checkDueTasks, 60000);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   loadSavedTheme();
 
   document.getElementById("taskPriority").value = localStorage.getItem("taskora_default_priority") || "medium";
-  seedTasksIfEmpty();
-  refreshUI();
+  await seedTasksIfEmpty();
+  await refreshUI();
 
   document.querySelector(".btn--primary").addEventListener("click", openModal);
   document.getElementById("modalClose").addEventListener("click", closeModal);
@@ -479,9 +487,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("sortSelect").addEventListener("change", renderTaskList);
 
   document.querySelectorAll(".sidebar__nav-link[data-page]").forEach(link => {
-    link.addEventListener("click", (e) => {
+    link.addEventListener("click", async (e) => {
       e.preventDefault();
-      switchPage(link.dataset.page);
+      await switchPage(link.dataset.page);
     });
   });
 
