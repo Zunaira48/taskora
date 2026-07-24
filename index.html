@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taskora | Organize your work, effortlessly</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/base/reset.css">
+  <link rel="stylesheet" href="css/base/variables.css">
+  <link rel="stylesheet" href="css/themes/dark.css">
+  <link rel="stylesheet" href="css/layout/dashboard.css">
+  <link rel="stylesheet" href="css/layout/sidebar.css">
+  <link rel="stylesheet" href="css/components/cards.css">
+  <link rel="stylesheet" href="css/components/buttons.css">
+  <link rel="stylesheet" href="css/components/task-card.css">
+  <link rel="stylesheet" href="css/components/board.css">
+  <link rel="stylesheet" href="css/components/modal.css">
+  <link rel="stylesheet" href="css/components/stats.css">
+  <link rel="stylesheet" href="css/components/calendar.css">
+  <link rel="stylesheet" href="css/polish.css">
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sidebar__logo">
+      <span class="sidebar__logo-text">Taskora</span>
+    </div>
+
+    <nav class="sidebar__nav" aria-label="Main navigation">
+      <ul class="sidebar__nav-list">
+        <li><a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-page="page-dashboard">Dashboard</a></li>
+        <li><a href="#" class="sidebar__nav-link" data-page="page-taskboard">Task board</a></li>
+        <li><a href="#" class="sidebar__nav-link" data-page="page-statistics">Statistics</a></li>
+        <li><a href="#" class="sidebar__nav-link" data-page="page-calendar">Calendar</a></li>
+        <li><a href="#" class="sidebar__nav-link" data-page="page-settings">Settings</a></li>
+      </ul>
+    </nav>
+
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+      <span id="themeToggleIcon">🌙</span>
+    </button>
+
+    <div class="sidebar__profile">
+      <div class="sidebar__avatar">HR</div>
+      <span class="sidebar__profile-name">Your profile</span>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <section id="page-dashboard" class="page">
+
+      <header class="dashboard__header">
+        <div>
+          <h1 class="dashboard__greeting">Good morning</h1>
+          <p class="dashboard__subtext">You have 5 tasks due today</p>
+        </div>
+        <button class="btn btn--primary" type="button">
+          <span>Quick add</span>
+        </button>
+      </header>
+
+      <div class="dashboard__toolbar">
+        <input type="text" id="searchInput" class="input" placeholder="Search tasks..." />
+
+        <select id="filterSelect" class="select">
+          <option value="all">All tasks</option>
+          <option value="todo">To do</option>
+          <option value="done">Completed</option>
+          <option value="overdue">Overdue</option>
+        </select>
+
+        <select id="sortSelect" class="select">
+          <option value="newest">Newest first</option>
+          <option value="priority">By priority</option>
+          <option value="dueDate">By due date</option>
+        </select>
+      </div>
+
+      <section class="dashboard__stats" aria-label="Task statistics">
+        <div class="stat-card">
+          <p class="stat-card__label">Total tasks</p>
+          <p class="stat-card__value" id="statTotal">0</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__label">Completed</p>
+          <p class="stat-card__value" id="statCompleted">0</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__label">In progress</p>
+          <p class="stat-card__value" id="statInProgress">0</p>
+        </div>
+        <div class="stat-card stat-card--danger">
+          <p class="stat-card__label">Overdue</p>
+          <p class="stat-card__value" id="statOverdue">0</p>
+        </div>
+      </section>
+
+      <section class="dashboard__panels">
+        <div class="panel">
+          <h2 class="panel__title">Today</h2>
+          <ul class="panel__list" id="todayTaskList"></ul>
+        </div>
+        <div class="panel">
+          <h2 class="panel__title">Recent activity</h2>
+          <ul class="panel__list panel__list--activity" id="activityList">
+            <!-- injected by JS -->
+          </ul>
+        </div>
+      </section>
+
+    </section>
+
+    <section id="page-taskboard" class="page page--hidden">
+      <header class="dashboard__header">
+        <h1 class="dashboard__greeting">Task board</h1>
+      </header>
+
+      <div class="board">
+        <div class="board__column">
+          <h2 class="board__column-title">To do</h2>
+          <ul class="board__list" id="board-todo"></ul>
+        </div>
+        <div class="board__column">
+          <h2 class="board__column-title">In progress</h2>
+          <ul class="board__list" id="board-inprogress"></ul>
+        </div>
+        <div class="board__column">
+          <h2 class="board__column-title">Done</h2>
+          <ul class="board__list" id="board-done"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-statistics" class="page page--hidden">
+      <header class="dashboard__header">
+        <h1 class="dashboard__greeting">Statistics</h1>
+      </header>
+
+      <div class="stats-grid">
+        <div class="panel stats-panel">
+          <h2 class="panel__title">Completion rate</h2>
+          <div class="donut" id="completionDonut">
+            <div class="donut__center">
+              <span class="donut__value" id="completionPercent">0%</span>
+              <span class="donut__label">complete</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel stats-panel">
+          <h2 class="panel__title">Tasks by priority</h2>
+          <div class="bar-chart" id="priorityChart"></div>
+        </div>
+
+        <div class="panel stats-panel">
+          <h2 class="panel__title">Tasks by category</h2>
+          <div class="bar-chart" id="categoryChart"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-settings" class="page page--hidden">
+      <header class="dashboard__header">
+        <h1 class="dashboard__greeting">Settings</h1>
+      </header>
+
+      <div class="panel settings-panel">
+        <h2 class="panel__title">Appearance</h2>
+        <div class="settings-row">
+          <div>
+            <p class="settings-row__label">Dark mode</p>
+            <p class="settings-row__hint">Switch between light and dark theme.</p>
+          </div>
+          <button class="btn" id="settingsThemeToggle" type="button">Toggle theme</button>
+        </div>
+      </div>
+
+      <div class="panel settings-panel">
+        <h2 class="panel__title">Defaults</h2>
+        <div class="settings-row">
+          <div>
+            <p class="settings-row__label">Default priority</p>
+            <p class="settings-row__hint">Used when quick-adding without changing priority.</p>
+          </div>
+          <select id="defaultPrioritySelect" class="select">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel settings-panel">
+        <h2 class="panel__title">Reminders</h2>
+        <div class="settings-row">
+          <div>
+            <p class="settings-row__label">Due date reminders</p>
+            <p class="settings-row__hint">Get a browser notification when a task is due or overdue.</p>
+          </div>
+          <button class="btn" id="enableNotifsBtn" type="button">Enable reminders</button>
+        </div>
+      </div>
+
+      <div class="panel settings-panel">
+        <h2 class="panel__title">Data</h2>
+        <div class="settings-row">
+          <div>
+            <p class="settings-row__label">Clear all tasks</p>
+            <p class="settings-row__hint">Permanently deletes every task and activity log entry.</p>
+          </div>
+          <button class="btn btn--danger" id="clearDataBtn" type="button">Clear data</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-calendar" class="page page--hidden">
+      <header class="dashboard__header">
+        <h1 class="dashboard__greeting">Calendar</h1>
+      </header>
+
+      <div class="panel calendar-panel">
+        <div class="calendar__nav">
+          <button class="btn" id="calPrevBtn" type="button">&lsaquo;</button>
+          <h2 class="calendar__month-label" id="calMonthLabel"></h2>
+          <button class="btn" id="calNextBtn" type="button">&rsaquo;</button>
+        </div>
+
+        <div class="calendar__weekdays">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+          <span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+
+        <div class="calendar__grid" id="calendarGrid"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title">Add task</h2>
+        <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="taskForm" class="modal__form">
+        <label class="field-label" for="taskTitle">Title</label>
+        <input type="text" id="taskTitle" class="input" required />
+
+        <label class="field-label" for="taskCategory">Category</label>
+        <input type="text" id="taskCategory" class="input" placeholder="e.g. Work, Study" />
+
+        <label class="field-label" for="taskPriority">Priority</label>
+        <select id="taskPriority" class="select">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+
+        <label class="field-label" for="taskDueDate">Due date</label>
+        <input type="date" id="taskDueDate" class="input" />
+
+        <button type="submit" class="btn btn--primary modal__submit">Add task</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/models/Task.js"></script>
+<script src="js/data/taskStorage.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

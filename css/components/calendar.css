@@ -1,0 +1,74 @@
+.calendar-panel {
+  max-width: 720px;
+}
+
+.calendar__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.calendar__month-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.calendar__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: var(--space-2);
+}
+
+.calendar__weekdays span {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar__day {
+  min-height: 72px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  padding: 6px;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar__day--outside {
+  opacity: 0.35;
+}
+
+.calendar__day--today {
+  outline: 2px solid var(--color-primary);
+}
+
+.calendar__day-number {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.calendar__day-task {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar__day-task--overdue {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}

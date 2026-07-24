@@ -1,0 +1,125 @@
+/* ===== Centered, contained layout ===== */
+.main-content {
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+/* ===== Sidebar nav icons ===== */
+.sidebar__nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar__nav-link[data-page="page-dashboard"]::before { content: "🏠"; }
+.sidebar__nav-link[data-page="page-taskboard"]::before { content: "🗂️"; }
+.sidebar__nav-link[data-page="page-statistics"]::before { content: "📊"; }
+.sidebar__nav-link[data-page="page-calendar"]::before { content: "📅"; }
+.sidebar__nav-link[data-page="page-settings"]::before { content: "⚙️"; }
+
+.sidebar__nav-link::before {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* ===== Sidebar logo mark ===== */
+.sidebar__logo-text::before {
+  content: "◆ ";
+  color: #a5a0f5;
+}
+
+/* ===== Depth: cards lift on hover ===== */
+.stat-card,
+.panel,
+.board__card,
+.stats-panel {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card:hover,
+.panel:hover,
+.stats-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.board__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Gradient accent on primary elements ===== */
+.btn--primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  box-shadow: 0 2px 8px rgba(91, 75, 218, 0.35);
+}
+
+.btn--primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+  box-shadow: 0 4px 14px rgba(91, 75, 218, 0.45);
+}
+
+.sidebar {
+  background: linear-gradient(180deg, var(--color-primary-dark), #241f5e);
+}
+
+/* ===== Stat card icons ===== */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 1.4rem;
+  opacity: 0.15;
+}
+
+.stat-card:nth-child(1)::after { content: "📋"; }
+.stat-card:nth-child(2)::after { content: "✅"; }
+.stat-card:nth-child(3)::after { content: "⏳"; }
+.stat-card:nth-child(4)::after { content: "⚠️"; }
+
+/* ===== Calendar cell hover + today glow ===== */
+.calendar__day {
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.calendar__day:not(.calendar__day--outside):hover {
+  background: var(--color-primary-light);
+  transform: scale(1.03);
+  cursor: default;
+}
+
+.calendar__day--today {
+  box-shadow: 0 0 0 3px rgba(91, 75, 218, 0.15);
+}
+
+/* ===== Smoother priority badges ===== */
+.task-item__badge,
+.board__card-actions button {
+  transition: transform 0.1s ease;
+}
+
+.task-item__badge:hover {
+  transform: scale(1.05);
+}
+
+/* ===== Avatar ring ===== */
+.sidebar__avatar {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+/* ===== Section title accent bar ===== */
+.dashboard__greeting,
+.panel__title {
+  position: relative;
+}
+
+.panel__title {
+  padding-left: 10px;
+  border-left: 3px solid var(--color-primary);
+}
