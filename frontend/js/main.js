@@ -1,7 +1,15 @@
+function showBackendError() {
+  document.getElementById("backendBanner").classList.add("backend-banner--visible");
+}
+
+function hideBackendError() {
+  document.getElementById("backendBanner").classList.remove("backend-banner--visible");
+}
+
 async function refreshUI() {
   await renderTaskList();
   await renderStats();
-  renderActivity();
+  await renderActivity();
 }
 
 async function seedTasksIfEmpty() {
@@ -61,19 +69,20 @@ async function renderTaskList() {
 
   listEl.innerHTML = tasks.map(task => {
     const isOverdue = task.dueDate && task.status !== "done" && new Date(task.dueDate) < new Date();
+    const labelChips = task.labels.map(l => `<span class="task-item__label">${l}</span>`).join("");
 
     return `
       <li class="task-item ${task.status === 'done' ? 'task-item--done' : ''} ${isOverdue ? 'task-item--overdue' : ''}">
         <input type="checkbox" class="task-item__checkbox" data-id="${task.id}" ${task.status === 'done' ? 'checked' : ''} />
         <span class="task-item__title">${task.title}</span>
         <span class="task-item__category">${task.category}</span>
+        ${labelChips}
         ${task.dueDate ? `<span class="task-item__due">${task.dueDate}</span>` : ''}
         <span class="task-item__badge task-item__badge--${task.priority}">
           ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
         </span>
-        <button class="task-item__delete" data-id="${task.id}" aria-label="Delete task">
-          &times;
-        </button>
+        <button class="task-item__edit" data-id="${task.id}" aria-label="Edit task">✎</button>
+        <button class="task-item__delete" data-id="${task.id}" aria-label="Delete task">&times;</button>
       </li>
     `;
   }).join("");
@@ -81,7 +90,7 @@ async function renderTaskList() {
   attachTaskListeners();
 }
 
-function attachTaskListeners() {
+async function attachTaskListeners() {
   document.querySelectorAll(".task-item__checkbox").forEach(checkbox => {
     checkbox.addEventListener("change", async (e) => {
       const id = e.target.dataset.id;
@@ -91,7 +100,7 @@ function attachTaskListeners() {
       await updateTask(id, { status: newStatus });
 
       if (newStatus === "done") {
-        logActivity(`Completed "${task.title}"`);
+        await logActivity(`Completed "${task.title}"`);
       }
       await refreshUI();
     });
@@ -103,13 +112,40 @@ function attachTaskListeners() {
       const allTasks = await getAllTasks();
       const task = allTasks.find(t => t.id === id);
       await deleteTask(id);
-      logActivity(`Deleted "${task.title}"`);
+      await logActivity(`Deleted "${task.title}"`);
       await refreshUI();
+    });
+  });
+
+  document.querySelectorAll(".task-item__edit").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.dataset.id;
+      const allTasks = await getAllTasks();
+      const task = allTasks.find(t => t.id === id);
+      openModal(task);
     });
   });
 }
 
-function openModal() {
+function openModal(task = null) {
+  const form = document.getElementById("taskForm");
+  form.reset();
+
+  if (task) {
+    document.getElementById("modalTitle").textContent = "Edit task";
+    document.getElementById("modalSubmitBtn").textContent = "Save changes";
+    document.getElementById("editingTaskId").value = task.id;
+    document.getElementById("taskTitle").value = task.title;
+    document.getElementById("taskCategory").value = task.category;
+    document.getElementById("taskPriority").value = task.priority;
+    document.getElementById("taskDueDate").value = task.dueDate || "";
+    document.getElementById("taskLabels").value = task.labels.join(", ");
+  } else {
+    document.getElementById("modalTitle").textContent = "Add task";
+    document.getElementById("modalSubmitBtn").textContent = "Add task";
+    document.getElementById("editingTaskId").value = "";
+  }
+
   document.getElementById("modalOverlay").classList.add("modal-overlay--open");
   document.getElementById("taskTitle").focus();
 }
@@ -117,6 +153,7 @@ function openModal() {
 function closeModal() {
   document.getElementById("modalOverlay").classList.remove("modal-overlay--open");
   document.getElementById("taskForm").reset();
+  document.getElementById("editingTaskId").value = "";
 }
 
 async function handleTaskFormSubmit(e) {
@@ -128,9 +165,18 @@ async function handleTaskFormSubmit(e) {
   const category = document.getElementById("taskCategory").value.trim() || "General";
   const priority = document.getElementById("taskPriority").value;
   const dueDate = document.getElementById("taskDueDate").value || null;
+  const labels = document.getElementById("taskLabels").value
+    .split(",").map(l => l.trim()).filter(Boolean);
+  const editingId = document.getElementById("editingTaskId").value;
 
-  await addTask({ title, category, priority, dueDate });
-  logActivity(`Added task "${title}"`);
+  if (editingId) {
+    await updateTask(editingId, { title, category, priority, dueDate, labels });
+    await logActivity(`Edited "${title}"`);
+  } else {
+    await addTask({ title, category, priority, dueDate, labels });
+    await logActivity(`Added task "${title}"`);
+  }
+
   closeModal();
   await refreshUI();
 }
@@ -154,7 +200,6 @@ async function renderStats() {
 
 function timeAgo(isoString) {
   const seconds = Math.floor((new Date() - new Date(isoString)) / 1000);
-
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -164,9 +209,9 @@ function timeAgo(isoString) {
   return `${days}d ago`;
 }
 
-function renderActivity() {
+async function renderActivity() {
   const listEl = document.getElementById("activityList");
-  const activity = getActivity();
+  const activity = await getActivity();
 
   if (activity.length === 0) {
     listEl.innerHTML = `<li class="activity-item activity-item--empty">No activity yet</li>`;
@@ -198,14 +243,10 @@ function loadSavedTheme() {
 }
 
 async function switchPage(pageId) {
-  document.querySelectorAll(".page").forEach(page => {
-    page.classList.add("page--hidden");
-  });
+  document.querySelectorAll(".page").forEach(page => page.classList.add("page--hidden"));
   document.getElementById(pageId).classList.remove("page--hidden");
 
-  document.querySelectorAll(".sidebar__nav-link").forEach(link => {
-    link.classList.remove("sidebar__nav-link--active");
-  });
+  document.querySelectorAll(".sidebar__nav-link").forEach(link => link.classList.remove("sidebar__nav-link--active"));
   document.querySelector(`[data-page="${pageId}"]`).classList.add("sidebar__nav-link--active");
 
   if (pageId === "page-taskboard") {
@@ -253,7 +294,7 @@ async function renderBoard() {
       const newStatus = e.target.dataset.status;
       await updateTask(id, { status: newStatus });
       const allTasks = await getAllTasks();
-      logActivity(`Moved "${allTasks.find(t => t.id === id).title}" to ${newStatus}`);
+      await logActivity(`Moved "${allTasks.find(t => t.id === id).title}" to ${newStatus}`);
       await renderBoard();
       await renderStats();
     });
@@ -308,7 +349,7 @@ function handleDefaultPriorityChange(e) {
 }
 
 async function handleClearData() {
-  const confirmed = confirm("This will permanently delete all tasks and activity. Continue?");
+  const confirmed = confirm("This will permanently delete all tasks. Continue?");
   if (!confirmed) return;
 
   const tasks = await getAllTasks();
@@ -316,7 +357,6 @@ async function handleClearData() {
     await deleteTask(task.id);
   }
 
-  localStorage.removeItem("taskora_activity");
   await refreshUI();
 }
 
@@ -328,8 +368,7 @@ async function renderCalendar() {
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
 
-  const monthNames = ["January","February","March","April","May","June",
-                       "July","August","September","October","November","December"];
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   document.getElementById("calMonthLabel").textContent = `${monthNames[month]} ${year}`;
 
   const firstDayOfMonth = new Date(year, month, 1);
@@ -342,22 +381,14 @@ async function renderCalendar() {
   const todayStr = today.toISOString().slice(0, 10);
 
   let cells = [];
-
-  for (let i = startWeekday - 1; i >= 0; i--) {
-    cells.push({ day: daysInPrevMonth - i, outside: true });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, outside: false });
-  }
-  while (cells.length % 7 !== 0) {
-    cells.push({ day: cells.length - (startWeekday + daysInMonth) + 1, outside: true });
-  }
+  for (let i = startWeekday - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, outside: true });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, outside: false });
+  while (cells.length % 7 !== 0) cells.push({ day: cells.length - (startWeekday + daysInMonth) + 1, outside: true });
 
   grid.innerHTML = cells.map(cell => {
     const cellDate = cell.outside ? null : new Date(year, month, cell.day);
     const cellDateStr = cellDate ? cellDate.toISOString().slice(0, 10) : "";
     const isToday = cellDateStr === todayStr;
-
     const dayTasks = cell.outside ? [] : tasks.filter(t => t.dueDate === cellDateStr);
 
     const taskTags = dayTasks.map(t => {
@@ -374,15 +405,8 @@ async function renderCalendar() {
   }).join("");
 }
 
-function goToPrevMonth() {
-  calendarDate.setMonth(calendarDate.getMonth() - 1);
-  renderCalendar();
-}
-
-function goToNextMonth() {
-  calendarDate.setMonth(calendarDate.getMonth() + 1);
-  renderCalendar();
-}
+function goToPrevMonth() { calendarDate.setMonth(calendarDate.getMonth() - 1); renderCalendar(); }
+function goToNextMonth() { calendarDate.setMonth(calendarDate.getMonth() + 1); renderCalendar(); }
 
 let notifiedTaskIds = new Set();
 let reminderIntervalId = null;
@@ -390,7 +414,6 @@ let reminderIntervalId = null;
 function updateNotifsButton() {
   const btn = document.getElementById("enableNotifsBtn");
   const enabled = localStorage.getItem("taskora_notifs_enabled") === "true";
-
   if (enabled) {
     btn.textContent = "Disable reminders";
     btn.classList.add("btn--danger");
@@ -402,36 +425,26 @@ function updateNotifsButton() {
 
 function toggleReminders() {
   const currentlyEnabled = localStorage.getItem("taskora_notifs_enabled") === "true";
-
   if (currentlyEnabled) {
     localStorage.setItem("taskora_notifs_enabled", "false");
-    if (reminderIntervalId) {
-      clearInterval(reminderIntervalId);
-      reminderIntervalId = null;
-    }
+    if (reminderIntervalId) { clearInterval(reminderIntervalId); reminderIntervalId = null; }
     updateNotifsButton();
     return;
   }
-
-  if (!("Notification" in window)) {
-    alert("This browser doesn't support notifications.");
-    return;
-  }
-
+  if (!("Notification" in window)) { alert("This browser doesn't support notifications."); return; }
   if (Notification.permission === "granted") {
     localStorage.setItem("taskora_notifs_enabled", "true");
     updateNotifsButton();
     startReminderCheck();
     return;
   }
-
   Notification.requestPermission().then(permission => {
     if (permission === "granted") {
       localStorage.setItem("taskora_notifs_enabled", "true");
       updateNotifsButton();
       startReminderCheck();
     } else {
-      alert("Notifications permission was denied in the browser. You can change this in your browser's site settings.");
+      alert("Notifications permission was denied. Change this in your browser's site settings.");
     }
   });
 }
@@ -441,22 +454,18 @@ async function checkDueTasks() {
   if (Notification.permission !== "granted") return;
 
   const tasks = await getAllTasks();
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   tasks.forEach(task => {
     if (task.status === "done" || !task.dueDate) return;
     if (notifiedTaskIds.has(task.id)) return;
-
-    const isDueOrOverdue = task.dueDate <= todayStr;
-    if (!isDueOrOverdue) return;
+    if (task.dueDate > todayStr) return;
 
     const isOverdue = task.dueDate < todayStr;
     new Notification("Taskora", {
       body: isOverdue ? `Overdue: "${task.title}"` : `Due today: "${task.title}"`,
       icon: "🔔"
     });
-
     notifiedTaskIds.add(task.id);
   });
 }
@@ -469,12 +478,12 @@ function startReminderCheck() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   loadSavedTheme();
-
   document.getElementById("taskPriority").value = localStorage.getItem("taskora_default_priority") || "medium";
+
   await seedTasksIfEmpty();
   await refreshUI();
 
-  document.querySelector(".btn--primary").addEventListener("click", openModal);
+  document.querySelector(".btn--primary").addEventListener("click", () => openModal());
   document.getElementById("modalClose").addEventListener("click", closeModal);
   document.getElementById("taskForm").addEventListener("submit", handleTaskFormSubmit);
   document.getElementById("modalOverlay").addEventListener("click", (e) => {
@@ -495,7 +504,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("enableNotifsBtn").addEventListener("click", toggleReminders);
   updateNotifsButton();
-
   if (localStorage.getItem("taskora_notifs_enabled") === "true" && Notification.permission === "granted") {
     startReminderCheck();
   }

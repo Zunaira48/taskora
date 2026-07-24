@@ -26,7 +26,9 @@
 <body>
 
 <div class="app">
-
+<div class="backend-banner" id="backendBanner">
+  ⚠️ Can't reach the server. Make sure the backend is running.
+</div>
   <aside class="sidebar">
     <div class="sidebar__logo">
       <span class="sidebar__logo-text">Taskora</span>
@@ -245,37 +247,40 @@
   </main>
 
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal__header">
-        <h2 class="modal__title">Add task</h2>
-        <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
-      </div>
-
-      <form id="taskForm" class="modal__form">
-        <label class="field-label" for="taskTitle">Title</label>
-        <input type="text" id="taskTitle" class="input" required />
-
-        <label class="field-label" for="taskCategory">Category</label>
-        <input type="text" id="taskCategory" class="input" placeholder="e.g. Work, Study" />
-
-        <label class="field-label" for="taskPriority">Priority</label>
-        <select id="taskPriority" class="select">
-          <option value="low">Low</option>
-          <option value="medium" selected>Medium</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
-        </select>
-
-        <label class="field-label" for="taskDueDate">Due date</label>
-        <input type="date" id="taskDueDate" class="input" />
-
-        <button type="submit" class="btn btn--primary modal__submit">Add task</button>
-      </form>
+  <div class="modal">
+    <div class="modal__header">
+      <h2 class="modal__title" id="modalTitle">Add task</h2>
+      <button class="modal__close" id="modalClose" aria-label="Close">&times;</button>
     </div>
+
+    <form id="taskForm" class="modal__form">
+      <input type="hidden" id="editingTaskId" value="" />
+
+      <label class="field-label" for="taskTitle">Title</label>
+      <input type="text" id="taskTitle" class="input" required />
+
+      <label class="field-label" for="taskCategory">Category</label>
+      <input type="text" id="taskCategory" class="input" placeholder="e.g. Work, Study" />
+
+      <label class="field-label" for="taskPriority">Priority</label>
+      <select id="taskPriority" class="select">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+        <option value="urgent">Urgent</option>
+      </select>
+
+      <label class="field-label" for="taskDueDate">Due date</label>
+      <input type="date" id="taskDueDate" class="input" />
+
+      <label class="field-label" for="taskLabels">Labels (comma-separated)</label>
+      <input type="text" id="taskLabels" class="input" placeholder="e.g. frontend, urgent" />
+
+      <button type="submit" class="btn btn--primary modal__submit" id="modalSubmitBtn">Add task</button>
+    </form>
   </div>
-
 </div>
-
+</div>
 <script src="js/models/Task.js"></script>
 <script src="js/data/taskStorage.js"></script>
 <script src="js/main.js"></script>

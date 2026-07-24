@@ -6,7 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// GET all tasks
+// ===== TASKS =====
+
 app.get('/api/tasks', async (req, res) => {
   try {
     const pool = await getPool();
@@ -18,11 +19,9 @@ app.get('/api/tasks', async (req, res) => {
   }
 });
 
-// POST create a new task
 app.post('/api/tasks', async (req, res) => {
   try {
-    const { title, category, priority, dueDate } = req.body;
-
+    const { title, category, priority, dueDate, labels } = req.body;
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
@@ -33,10 +32,11 @@ app.post('/api/tasks', async (req, res) => {
       .input('Category', sql.NVarChar, category || 'General')
       .input('Priority', sql.NVarChar, priority || 'medium')
       .input('DueDate', sql.Date, dueDate || null)
+      .input('Labels', sql.NVarChar, labels || null)
       .query(`
-        INSERT INTO Tasks (Id, Title, Category, Priority, Status, DueDate, CreatedAt, UpdatedAt)
+        INSERT INTO Tasks (Id, Title, Category, Priority, Status, DueDate, Labels, CreatedAt, UpdatedAt)
         OUTPUT INSERTED.*
-        VALUES (NEWID(), @Title, @Category, @Priority, 'todo', @DueDate, GETUTCDATE(), GETUTCDATE())
+        VALUES (NEWID(), @Title, @Category, @Priority, 'todo', @DueDate, @Labels, GETUTCDATE(), GETUTCDATE())
       `);
 
     res.status(201).json(result.recordset[0]);
@@ -46,11 +46,10 @@ app.post('/api/tasks', async (req, res) => {
   }
 });
 
-// PUT update an existing task (partial updates supported)
 app.put('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const allowedFields = { title: 'Title', category: 'Category', priority: 'Priority', status: 'Status', dueDate: 'DueDate' };
+    const allowedFields = { title: 'Title', category: 'Category', priority: 'Priority', status: 'Status', dueDate: 'DueDate', labels: 'Labels' };
     const updates = req.body;
 
     const pool = await getPool();
@@ -92,7 +91,6 @@ app.put('/api/tasks/:id', async (req, res) => {
   }
 });
 
-// DELETE a task
 app.delete('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -104,7 +102,6 @@ app.delete('/api/tasks/:id', async (req, res) => {
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
-
     res.status(204).send();
   } catch (err) {
     console.error(err);
@@ -112,6 +109,39 @@ app.delete('/api/tasks/:id', async (req, res) => {
   }
 });
 
+// ===== ACTIVITY =====
+
+app.get('/api/activity', async (req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query('SELECT TOP 10 * FROM Activity ORDER BY Timestamp DESC');
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch activity' });
+  }
+});
+
+app.post('/api/activity', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message is required' });
+
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('Message', sql.NVarChar, message)
+      .query(`
+        INSERT INTO Activity (Id, Message, Timestamp)
+        OUTPUT INSERTED.*
+        VALUES (NEWID(), @Message, GETUTCDATE())
+      `);
+
+    res.status(201).json(result.recordset[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to log activity' });
+  }
+});
+
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Taskora backend running on http://localhost:${PORT}`));
-
