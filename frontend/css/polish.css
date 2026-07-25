@@ -1,7 +1,7 @@
 /* ===== Centered, contained layout ===== */
+/* ===== Full-width layout — content fills the space beside the sidebar ===== */
 .main-content {
-  max-width: 1140px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 /* ===== Sidebar nav icons ===== */
@@ -11,119 +11,61 @@
   gap: 10px;
 }
 
-.sidebar__nav-link[data-page="page-dashboard"]::before { content: "🏠"; }
-.sidebar__nav-link[data-page="page-taskboard"]::before { content: "🗂️"; }
-.sidebar__nav-link[data-page="page-statistics"]::before { content: "📊"; }
-.sidebar__nav-link[data-page="page-calendar"]::before { content: "📅"; }
-.sidebar__nav-link[data-page="page-settings"]::before { content: "⚙️"; }
+.sidebar__nav-link[data-page="page-dashboard"]::before { content: "\25CB"; }
+.sidebar__nav-link[data-page="page-taskboard"]::before { content: "\25A2"; }
+.sidebar__nav-link[data-page="page-statistics"]::before { content: "\25E4"; }
+.sidebar__nav-link[data-page="page-calendar"]::before { content: "\25A6"; }
+.sidebar__nav-link[data-page="page-settings"]::before { content: "\2699"; }
 
 .sidebar__nav-link::before {
-  font-size: 0.9rem;
-  opacity: 0.85;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  width: 14px;
+  text-align: center;
 }
 
-/* ===== Sidebar logo mark ===== */
-.sidebar__logo-text::before {
-  content: "◆ ";
-  color: #a5a0f5;
+.sidebar__nav-link--active::before {
+  opacity: 1;
 }
 
-/* ===== Depth: cards lift on hover ===== */
+/* ===== Cards: quiet surface, no lift-on-hover theatrics ===== */
 .stat-card,
 .panel,
-.board__card,
-.stats-panel {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+.board__column {
+  box-shadow: 0 1px 2px rgba(27, 26, 23, 0.04);
 }
 
-.stat-card:hover,
-.panel:hover,
-.stats-panel:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+.board__card {
+  border: 1px solid var(--color-border);
+  transition: border-color 0.15s ease;
 }
 
 .board__card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary);
 }
 
-/* ===== Gradient accent on primary elements ===== */
+/* ===== Primary button: flat, confident, single accent color ===== */
 .btn--primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  box-shadow: 0 2px 8px rgba(91, 75, 218, 0.35);
+  background: var(--color-primary);
+  color: #fff;
 }
 
 .btn--primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
-  box-shadow: 0 4px 14px rgba(91, 75, 218, 0.45);
+  background: var(--color-primary-dark);
 }
 
-.sidebar {
-  background: linear-gradient(180deg, var(--color-primary-dark), #241f5e);
-}
-
-/* ===== Stat card icons ===== */
-.stat-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card::after {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  font-size: 1.4rem;
-  opacity: 0.15;
-}
-
-.stat-card:nth-child(1)::after { content: "📋"; }
-.stat-card:nth-child(2)::after { content: "✅"; }
-.stat-card:nth-child(3)::after { content: "⏳"; }
-.stat-card:nth-child(4)::after { content: "⚠️"; }
-
-/* ===== Calendar cell hover + today glow ===== */
-.calendar__day {
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.calendar__day:not(.calendar__day--outside):hover {
-  background: var(--color-primary-light);
-  transform: scale(1.03);
-  cursor: default;
-}
-
-.calendar__day--today {
-  box-shadow: 0 0 0 3px rgba(91, 75, 218, 0.15);
-}
-
-/* ===== Smoother priority badges ===== */
-.task-item__badge,
-.board__card-actions button {
-  transition: transform 0.1s ease;
-}
-
-.task-item__badge:hover {
-  transform: scale(1.05);
-}
-
-/* ===== Avatar ring ===== */
-.sidebar__avatar {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
-}
-
-/* ===== Section title accent bar ===== */
-.dashboard__greeting,
+/* ===== Panel titles: quiet rule, not a loud colored bar ===== */
 .panel__title {
-  position: relative;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-3);
 }
 
-.panel__title {
-  padding-left: 10px;
-  border-left: 3px solid var(--color-primary);
+.calendar__day-number {
+  font-family: var(--font-mono);
 }
 
+/* ===== Backend banner ===== */
 .backend-banner {
   display: none;
   background: var(--color-danger);

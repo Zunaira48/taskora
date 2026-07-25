@@ -1,14 +1,16 @@
 [data-theme="dark"] {
-  --color-bg: #17171a;
-  --color-surface: #1f1f23;
-  --color-surface-alt: #26262b;
-  --color-border: #333338;
-  --color-text-primary: #f0f0ee;
-  --color-text-secondary: #a8a8ad;
-  --color-text-muted: #6e6e73;
+  --color-ink: #0e0d0b;
+  --color-bg: #17150f;
+  --color-surface: #201d17;
+  --color-surface-alt: #29251d;
+  --color-border: #3a3527;
+  --color-text-primary: #f2ede0;
+  --color-text-secondary: #b3ab97;
+  --color-text-muted: #7d765f;
 
-  --color-primary-light: #2a2660;
-  --color-danger-light: #3a1f1f;
-  --color-warning-light: #3a2e14;
-  --color-success-light: #1e2e1a;
+  --color-primary-light: #3a2a18;
+  --color-aurora-light: #16302c;
+  --color-danger-light: #3a1f1a;
+  --color-warning-light: #362b14;
+  --color-success-light: #16302c;
 }

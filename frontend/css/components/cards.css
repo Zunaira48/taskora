@@ -11,8 +11,10 @@
 }
 
 .stat-card__value {
-  font-size: 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
   font-weight: 600;
+  color: var(--color-ink);
 }
 
 .stat-card--danger .stat-card__value {

@@ -42,6 +42,15 @@ taskora/
 
 There is no frontend build tool — `frontend/` is served as static files (e.g. via VS Code's Live Server extension) and talks to the backend over `http://localhost:3000/api`.
 
+## Design system
+
+Taskora's visual identity plays on its name — *Task* + *Aurora* — a "dawn breaking" theme tied to the dashboard's "Good morning" greeting.
+
+- **Palette:** warm paper background, ink-black sidebar, clay-amber primary accent paired with a teal "aurora" secondary accent
+- **Typography:** Fraunces (serif) for headings, Inter for body text, IBM Plex Mono for numbers/dates — a "ledger" feel for anything data-like
+- **Signature motif:** a thin amber→teal gradient arc appears under every page title, as the sidebar's active-page indicator, and as the completion-rate donut's ring — one consistent visual thread instead of scattered effects
+- Dark mode uses the same warm-ink palette, not a generic cool gray
+
 ## Tech stack
 
 | Layer | Technology |

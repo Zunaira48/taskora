@@ -25,7 +25,7 @@
 
 .board__card {
   background: var(--color-surface-alt);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: var(--space-3);
   font-size: 0.85rem;
 }
@@ -33,6 +33,7 @@
 .board__card-title {
   display: block;
   margin-bottom: var(--space-2);
+  font-weight: 500;
 }
 
 .board__card-actions {

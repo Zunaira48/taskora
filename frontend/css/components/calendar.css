@@ -1,16 +1,22 @@
 .calendar-panel {
-  max-width: 720px;
+  max-width: 100%;
+  height: calc(100vh - 300px);
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
 }
 
 .calendar__nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
+  flex-shrink: 0;
 }
 
 .calendar__month-label {
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
   font-weight: 600;
 }
 
@@ -18,6 +24,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   margin-bottom: var(--space-2);
+  flex-shrink: 0;
 }
 
 .calendar__weekdays span {
@@ -30,42 +37,55 @@
 .calendar__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  grid-auto-rows: 1fr;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
 }
 
 .calendar__day {
-  min-height: 72px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-surface-alt);
-  padding: 6px;
-  font-size: 0.75rem;
+  padding: var(--space-2);
+  font-size: 0.78rem;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: background 0.15s ease;
+  overflow: hidden;
 }
 
 .calendar__day--outside {
   opacity: 0.35;
 }
 
+.calendar__day:not(.calendar__day--outside):hover {
+  background: var(--color-primary-light);
+}
+
 .calendar__day--today {
-  outline: 2px solid var(--color-primary);
+  background: var(--color-aurora-light);
+  box-shadow: inset 0 0 0 2px var(--color-aurora);
 }
 
 .calendar__day-number {
+  font-family: var(--font-mono);
   font-weight: 500;
+  font-size: 0.8rem;
   color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 .calendar__day-task {
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
-  border-radius: 4px;
-  padding: 1px 4px;
-  font-size: 0.65rem;
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 0.68rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .calendar__day-task--overdue {

@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: conic-gradient(var(--color-primary) calc(var(--pct, 0) * 1%), var(--color-surface-alt) 0);
+  background: conic-gradient(from 0deg, var(--color-primary), var(--color-aurora) calc(var(--pct, 0) * 1%), var(--color-surface-alt) 0);
 }
 
 .donut__center {
@@ -33,8 +33,10 @@
 }
 
 .donut__value {
+  font-family: var(--font-mono);
   font-size: 1.3rem;
   font-weight: 600;
+  color: var(--color-ink);
 }
 
 .donut__label {
@@ -81,5 +83,6 @@
 .bar-row__count {
   width: 20px;
   text-align: right;
+  font-family: var(--font-mono);
   color: var(--color-text-muted);
 }
