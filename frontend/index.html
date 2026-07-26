@@ -21,10 +21,33 @@
   <link rel="stylesheet" href="css/components/stats.css">
   <link rel="stylesheet" href="css/components/calendar.css">
   <link rel="stylesheet" href="css/polish.css">
+  <link rel="stylesheet" href="css/components/auth.css">
 </head>
 <body>
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <h1 class="auth-card__logo">Taskora</h1>
+    <p class="auth-card__subtitle" id="authSubtitle">Log in to your account</p>
 
-<div class="app">
+    <form id="authForm">
+      <label class="field-label" for="authEmail">Email</label>
+      <input type="email" id="authEmail" class="input" required autocomplete="email" />
+
+      <label class="field-label" for="authPassword">Password</label>
+      <input type="password" id="authPassword" class="input" required minlength="6" autocomplete="current-password" />
+
+      <p class="auth-card__error" id="authError"></p>
+
+      <button type="submit" class="btn btn--primary auth-card__submit" id="authSubmitBtn">Log in</button>
+    </form>
+
+    <p class="auth-card__toggle">
+      <span id="authToggleText">Don't have an account?</span>
+      <a href="#" id="authToggleLink">Create one</a>
+    </p>
+  </div>
+</div>
+<div class="app" id="appRoot" style="display: none;">
 <div class="backend-banner" id="backendBanner">
   ⚠️ Can't reach the server. Make sure the backend is running.
 </div>
@@ -48,9 +71,10 @@
     </button>
 
     <div class="sidebar__profile">
-      <div class="sidebar__avatar">HR</div>
-      <span class="sidebar__profile-name">Your profile</span>
-    </div>
+  <div class="sidebar__avatar" id="userAvatar">HR</div>
+  <span class="sidebar__profile-name" id="userEmailDisplay">Your profile</span>
+  <button id="logoutBtn" class="sidebar__logout" title="Log out">⏻</button>
+</div>
   </aside>
 
   <main class="main-content">
@@ -62,7 +86,7 @@
           <h1 class="dashboard__greeting">Good morning</h1>
           <p class="dashboard__subtext">You have 5 tasks due today</p>
         </div>
-        <button class="btn btn--primary" type="button">
+        <button class="btn btn--primary" type="button" id="quickAddBtn">
           <span>Quick add</span>
         </button>
       </header>
@@ -280,9 +304,10 @@
   </div>
 </div>
 </div>
-<script src="js/models/Task.js"></script>
+<script src="js/data/auth.js"></script>
 <script src="js/data/taskStorage.js"></script>
 <script src="js/main.js"></script>
+<script src="js/models/Task.js"></script>
 
 </body>
 </html>

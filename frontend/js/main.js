@@ -6,6 +6,74 @@ function hideBackendError() {
   document.getElementById("backendBanner").classList.remove("backend-banner--visible");
 }
 
+// ===== AUTH GATE =====
+
+function showAuthScreen() {
+  document.getElementById("authScreen").style.display = "flex";
+  document.getElementById("appRoot").style.display = "none";
+}
+
+function showApp(email) {
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("appRoot").style.display = "grid";
+  document.getElementById("userEmailDisplay").textContent = email;
+  document.getElementById("userAvatar").textContent = email.slice(0, 2).toUpperCase();
+}
+
+function handleSessionExpired() {
+  showAuthScreen();
+}
+
+let isRegisterMode = false;
+
+function toggleAuthMode(e) {
+  e.preventDefault();
+  isRegisterMode = !isRegisterMode;
+  document.getElementById("authSubtitle").textContent = isRegisterMode
+    ? "Create your account" : "Log in to your account";
+  document.getElementById("authSubmitBtn").textContent = isRegisterMode
+    ? "Create account" : "Log in";
+  document.getElementById("authToggleText").textContent = isRegisterMode
+    ? "Already have an account?" : "Don't have an account?";
+  document.getElementById("authToggleLink").textContent = isRegisterMode
+    ? "Log in" : "Create one";
+  document.getElementById("authError").textContent = "";
+}
+
+async function handleAuthFormSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const errorEl = document.getElementById("authError");
+  errorEl.textContent = "";
+
+  try {
+    const result = isRegisterMode
+      ? await registerAccount(email, password)
+      : await loginAccount(email, password);
+
+    showApp(result.email);
+    await initializeApp();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+}
+
+async function handleLogout() {
+  await logoutAccount();
+  showAuthScreen();
+  document.getElementById("authForm").reset();
+}
+
+async function initializeApp() {
+  loadSavedTheme();
+  document.getElementById("taskPriority").value = localStorage.getItem("taskora_default_priority") || "medium";
+  await seedTasksIfEmpty();
+  await refreshUI();
+}
+
+// ===== CORE APP LOGIC (unchanged from before, just now runs after login) =====
+
 async function refreshUI() {
   await renderTaskList();
   await renderStats();
@@ -476,14 +544,26 @@ function startReminderCheck() {
   reminderIntervalId = setInterval(checkDueTasks, 60000);
 }
 
+// ===== STARTUP =====
+
 document.addEventListener("DOMContentLoaded", async () => {
-  loadSavedTheme();
-  document.getElementById("taskPriority").value = localStorage.getItem("taskora_default_priority") || "medium";
+  // Auth-related listeners are wired up immediately, regardless of login state
+  document.getElementById("authForm").addEventListener("submit", handleAuthFormSubmit);
+  document.getElementById("authToggleLink").addEventListener("click", toggleAuthMode);
+  document.getElementById("logoutBtn").addEventListener("click", handleLogout);
 
-  await seedTasksIfEmpty();
-  await refreshUI();
+  // Check session before doing anything else
+  const user = await getCurrentUser();
+  if (user) {
+    showApp(user.email);
+    await initializeApp();
+  } else {
+    showAuthScreen();
+  }
 
-  document.querySelector(".btn--primary").addEventListener("click", () => openModal());
+  // Everything below is wired up immediately either way — it just won't do
+  // anything useful until initializeApp() has run after a successful login
+  document.getElementById("quickAddBtn").addEventListener("click", () => openModal());
   document.getElementById("modalClose").addEventListener("click", closeModal);
   document.getElementById("taskForm").addEventListener("submit", handleTaskFormSubmit);
   document.getElementById("modalOverlay").addEventListener("click", (e) => {
