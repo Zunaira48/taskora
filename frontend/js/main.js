@@ -72,7 +72,7 @@ async function initializeApp() {
   await refreshUI();
 }
 
-// ===== CORE APP LOGIC (unchanged from before, just now runs after login) =====
+// ===== CORE APP LOGIC =====
 
 async function refreshUI() {
   await renderTaskList();
@@ -143,6 +143,8 @@ async function renderTaskList() {
       <li class="task-item ${task.status === 'done' ? 'task-item--done' : ''} ${isOverdue ? 'task-item--overdue' : ''}">
         <input type="checkbox" class="task-item__checkbox" data-id="${task.id}" ${task.status === 'done' ? 'checked' : ''} />
         <span class="task-item__title">${task.title}</span>
+         ${task.status === "todo" ? `<button class="task-item__start" data-id="${task.id}">Start</button>` : ""}
+         ${task.status === "in-progress" ? `<span class="task-item__status-pill">In progress</span>` : ""}
         <span class="task-item__category">${task.category}</span>
         ${labelChips}
         ${task.dueDate ? `<span class="task-item__due">${task.dueDate}</span>` : ''}
@@ -191,6 +193,17 @@ async function attachTaskListeners() {
       const allTasks = await getAllTasks();
       const task = allTasks.find(t => t.id === id);
       openModal(task);
+    });
+  });
+
+  document.querySelectorAll(".task-item__start").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.dataset.id;
+      const allTasks = await getAllTasks();
+      const task = allTasks.find(t => t.id === id);
+      await updateTask(id, { status: "in-progress" });
+      await logActivity(`Started "${task.title}"`);
+      await refreshUI();
     });
   });
 }
@@ -247,6 +260,33 @@ async function handleTaskFormSubmit(e) {
 
   closeModal();
   await refreshUI();
+}
+
+// ===== NOTES (task board only) =====
+
+let currentNotesTaskId = null;
+
+function openNotesModal(task) {
+  currentNotesTaskId = task.id;
+  document.getElementById("notesModalTitle").textContent = "Notes";
+  document.getElementById("notesModalSubtitle").textContent = task.title;
+  document.getElementById("notesTextarea").value = task.notes || "";
+  document.getElementById("notesModalOverlay").classList.add("modal-overlay--open");
+  document.getElementById("notesTextarea").focus();
+}
+
+function closeNotesModal() {
+  document.getElementById("notesModalOverlay").classList.remove("modal-overlay--open");
+  currentNotesTaskId = null;
+}
+
+async function saveNotes() {
+  if (!currentNotesTaskId) return;
+  const notes = document.getElementById("notesTextarea").value;
+  await updateTask(currentNotesTaskId, { notes });
+  await logActivity(`Updated notes`);
+  closeNotesModal();
+  await renderBoard();
 }
 
 async function renderStats() {
@@ -346,7 +386,10 @@ async function renderBoard() {
     const card = document.createElement("li");
     card.className = "board__card";
     card.innerHTML = `
-      <span class="board__card-title">${task.title}</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="board__card-title">${task.title}</span>
+        <button class="board__card-notes-icon ${task.notes ? 'board__card-notes-icon--has-notes' : ''}" data-id="${task.id}" title="Notes">📝</button>
+      </div>
       <div class="board__card-actions">
         ${task.status !== "todo" ? `<button data-id="${task.id}" data-status="todo">To do</button>` : ""}
         ${task.status !== "in-progress" ? `<button data-id="${task.id}" data-status="in-progress">In progress</button>` : ""}
@@ -365,6 +408,15 @@ async function renderBoard() {
       await logActivity(`Moved "${allTasks.find(t => t.id === id).title}" to ${newStatus}`);
       await renderBoard();
       await renderStats();
+    });
+  });
+
+  document.querySelectorAll(".board__card-notes-icon").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.dataset.id;
+      const allTasks = await getAllTasks();
+      const task = allTasks.find(t => t.id === id);
+      openNotesModal(task);
     });
   });
 }
@@ -547,12 +599,10 @@ function startReminderCheck() {
 // ===== STARTUP =====
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // Auth-related listeners are wired up immediately, regardless of login state
   document.getElementById("authForm").addEventListener("submit", handleAuthFormSubmit);
   document.getElementById("authToggleLink").addEventListener("click", toggleAuthMode);
   document.getElementById("logoutBtn").addEventListener("click", handleLogout);
 
-  // Check session before doing anything else
   const user = await getCurrentUser();
   if (user) {
     showApp(user.email);
@@ -561,8 +611,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     showAuthScreen();
   }
 
-  // Everything below is wired up immediately either way — it just won't do
-  // anything useful until initializeApp() has run after a successful login
   document.getElementById("quickAddBtn").addEventListener("click", () => openModal());
   document.getElementById("modalClose").addEventListener("click", closeModal);
   document.getElementById("taskForm").addEventListener("submit", handleTaskFormSubmit);
@@ -593,4 +641,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("clearDataBtn").addEventListener("click", handleClearData);
   document.getElementById("calPrevBtn").addEventListener("click", goToPrevMonth);
   document.getElementById("calNextBtn").addEventListener("click", goToNextMonth);
+
+  document.getElementById("notesModalClose").addEventListener("click", closeNotesModal);
+  document.getElementById("saveNotesBtn").addEventListener("click", saveNotes);
+  document.getElementById("notesModalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "notesModalOverlay") closeNotesModal();
+  });
 });

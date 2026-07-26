@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/components/calendar.css">
   <link rel="stylesheet" href="css/polish.css">
   <link rel="stylesheet" href="css/components/auth.css">
+  <link rel="stylesheet" href="css/components/notepad.css">
 </head>
 <body>
 <div class="auth-screen" id="authScreen">
@@ -303,6 +304,26 @@
     </form>
   </div>
 </div>
+
+  <div class="modal-overlay" id="notesModalOverlay">
+    <div class="modal notepad">
+      <div class="notepad__header">
+        <div>
+          <h2 class="notepad__title" id="notesModalTitle">Notes</h2>
+          <p class="notepad__subtitle" id="notesModalSubtitle"></p>
+        </div>
+        <button class="modal__close" id="notesModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <textarea class="notepad__paper" id="notesTextarea" placeholder="Write anything about this task — context, blockers, links, meeting notes..."></textarea>
+
+      <div class="notepad__footer">
+        <span class="notepad__hint">Only visible on Task board</span>
+        <button class="btn btn--primary" id="saveNotesBtn" type="button">Save notes</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 <script src="js/data/auth.js"></script>
 <script src="js/data/taskStorage.js"></script>

@@ -72,3 +72,36 @@
 .theme-toggle:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+.sidebar__profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0; /* allows flex children to shrink below their content size */
+}
+
+.sidebar__avatar {
+  flex-shrink: 0; /* never shrink the avatar circle */
+}
+
+.sidebar__profile-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* truncates long emails with "..." instead of overflowing */
+}
+
+.sidebar__logout {
+  flex-shrink: 0; /* never shrink or hide the logout button */
+  background: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.sidebar__logout:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
