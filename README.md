@@ -7,7 +7,7 @@ It started as a localStorage-only prototype and was rebuilt in stages into a rea
 ## Features
 
 - **Authentication** — email/password registration and login, passwords hashed with bcrypt, sessions handled via an httpOnly JWT cookie; every task and activity entry is scoped to the logged-in user
-- **Dashboard** — quick stats (total, completed, in progress, overdue), today's task list with inline **Start** action to move a task into progress, recent activity feed
+- **Dashboard** — quick stats (total, completed, in progress, overdue), today's task list with inline **Start** action to move a task into progress (and revert it back to To do), recent activity feed
 - **Task board** — Kanban-style columns (To do / In progress / Done), plus a **notepad-style notes panel** per task (task-board-only, not shown on the Dashboard) for context, blockers, or meeting notes
 - **Statistics** — completion rate, tasks by priority, tasks by category
 - **Calendar** — monthly view with due dates plotted per day, overdue highlighting
@@ -36,6 +36,9 @@ taskora/
 │   ├── auth.js                # bcrypt hashing + JWT sign/verify + cookie options
 │   ├── db.js                   # SQL Server connection pool (mssql package)
 │   ├── middleware/requireAuth.js  # Verifies the JWT cookie, attaches req.userId
+│   ├── __tests__/               # Jest + Supertest suite (mocked database layer)
+│   ├── jest.config.js
+│   ├── jest.setup.js
 │   ├── .env.example            # Template for required environment variables
 │   └── package.json
 │
@@ -66,6 +69,7 @@ Taskora's visual identity plays on its name — *Task* + *Aurora* — a "dawn br
 | Database | Microsoft SQL Server, accessed via the `mssql` npm package |
 | Auth to DB | SQL Server Authentication (not Windows/Integrated Auth) |
 | App authentication | bcrypt password hashing, JWT stored in an httpOnly cookie |
+| Testing | Jest + Supertest, database layer mocked |
 
 ## Setup — Backend
 
@@ -157,6 +161,17 @@ No build step required.
 
 If the backend isn't reachable, a red banner appears at the top of the app; it disappears automatically once the backend responds again.
 
+## Automated tests
+
+The backend has a Jest + Supertest suite covering authentication (register/login/logout/session check), full task CRUD, activity logging, and the `requireAuth` middleware — 25 tests in total. The real database layer (`db.js`) is mocked, so the suite runs fast and deterministically without needing a live SQL Server connection.
+
+```powershell
+cd backend
+npm test
+```
+
+Expected output: `4 test suites passed, 25 tests passed`.
+
 ## API Reference
 
 See [`docs/API.md`](docs/API.md) for the full list of endpoints, request/response shapes, and status codes.
@@ -171,6 +186,7 @@ See [`docs/QA-TEST-PLAN.md`](docs/QA-TEST-PLAN.md) for the manual test cases use
 - Desktop-first layout not yet optimized for mobile screens
 - Task board is button-based, not drag-and-drop
 - No password reset / email verification flow yet
+- No frontend automated tests yet (backend only)
 - Currently runs locally only; not yet deployed to a public URL
 
 ## License
