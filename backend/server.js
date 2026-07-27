@@ -247,4 +247,8 @@ app.post('/api/activity', requireAuth, async (req, res) => {
 });
 
 const PORT = 3000;
-app.listen(PORT, () => console.log(`Taskora backend running on http://localhost:${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Taskora backend running on http://localhost:${PORT}`));
+}
+
+module.exports = app;
