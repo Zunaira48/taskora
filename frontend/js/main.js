@@ -144,8 +144,8 @@ async function renderTaskList() {
         <input type="checkbox" class="task-item__checkbox" data-id="${task.id}" ${task.status === 'done' ? 'checked' : ''} />
         <span class="task-item__title">${task.title}</span>
          ${task.status === "todo" ? `<button class="task-item__start" data-id="${task.id}">Start</button>` : ""}
-         ${task.status === "in-progress" ? `<span class="task-item__status-pill">In progress</span>` : ""}
-        <span class="task-item__category">${task.category}</span>
+         ${task.status === "in-progress" ? `<button class="task-item__status-pill" data-id="${task.id}" title="Click to move back to To do">↺ In progress</button>` : ""}
+         <span class="task-item__category">${task.category}</span>
         ${labelChips}
         ${task.dueDate ? `<span class="task-item__due">${task.dueDate}</span>` : ''}
         <span class="task-item__badge task-item__badge--${task.priority}">
@@ -203,6 +203,17 @@ async function attachTaskListeners() {
       const task = allTasks.find(t => t.id === id);
       await updateTask(id, { status: "in-progress" });
       await logActivity(`Started "${task.title}"`);
+      await refreshUI();
+    });
+  });
+
+  document.querySelectorAll(".task-item__status-pill").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const id = e.target.dataset.id;
+      const allTasks = await getAllTasks();
+      const task = allTasks.find(t => t.id === id);
+      await updateTask(id, { status: "todo" });
+      await logActivity(`Moved "${task.title}" back to To do`);
       await refreshUI();
     });
   });

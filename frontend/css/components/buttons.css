@@ -48,3 +48,34 @@
 .btn--danger:hover {
   background: var(--color-danger-light);
 }
+
+.task-item__start {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.task-item__start:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.task-item__status-pill {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.task-item__status-pill:hover {
+  background: var(--color-warning);
+  color: #fff;
+}
