@@ -1,32 +1,16 @@
 require('dotenv').config();
-const sql = require('mssql');
+const { Pool } = require('pg');
 
-const config = {
-  server: process.env.DB_SERVER,
-  database: process.env.DB_DATABASE,
-  port: parseInt(process.env.DB_PORT),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  options: {
-    trustServerCertificate: true
-  }
-};
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
 
-let poolPromise;
+pool.on('connect', () => {
+  console.log('Connected to PostgreSQL (Neon)');
+});
 
-function getPool() {
-  if (!poolPromise) {
-    poolPromise = sql.connect(config)
-      .then(pool => {
-        console.log('Connected to SQL Server');
-        return pool;
-      })
-      .catch(err => {
-        poolPromise = null; // allow retry on next request if it failed
-        throw err;
-      });
-  }
-  return poolPromise;
-}
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL client error', err);
+});
 
-module.exports = { sql, getPool };
+module.exports = { pool };

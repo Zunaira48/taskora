@@ -1,17 +1,11 @@
 jest.mock('../db', () => ({
-  sql: {
-    NVarChar: jest.fn(() => 'NVarChar'),
-    Date: 'Date',
-    UniqueIdentifier: 'UniqueIdentifier',
-    MAX: 'MAX'
-  },
-  getPool: jest.fn()
+  pool: { query: jest.fn() }
 }));
 
 const request = require('supertest');
 const app = require('../server');
-const { getPool } = require('../db');
-const { makeRequestMock, makeToken } = require('./testHelpers');
+const { pool } = require('../db');
+const { makeToken } = require('./testHelpers');
 
 const authCookie = [`token=${makeToken('user-1', 'jane@example.com')}`];
 
@@ -22,11 +16,7 @@ describe('GET /api/activity', () => {
   });
 
   test('returns recent activity for the logged-in user', async () => {
-    const pool = { request: jest.fn() };
-    pool.request.mockReturnValueOnce(
-      makeRequestMock({ recordset: [{ Id: 'a1', Message: 'Added task "Buy milk"' }] })
-    );
-    getPool.mockResolvedValue(pool);
+    pool.query.mockResolvedValueOnce({ rows: [{ Id: 'a1', Message: 'Added task "Buy milk"' }] });
 
     const res = await request(app).get('/api/activity').set('Cookie', authCookie);
     expect(res.status).toBe(200);
@@ -41,11 +31,7 @@ describe('POST /api/activity', () => {
   });
 
   test('logs a new activity entry', async () => {
-    const pool = { request: jest.fn() };
-    pool.request.mockReturnValueOnce(
-      makeRequestMock({ recordset: [{ Id: 'a1', Message: 'Deleted task "Old"' }] })
-    );
-    getPool.mockResolvedValue(pool);
+    pool.query.mockResolvedValueOnce({ rows: [{ Id: 'a1', Message: 'Deleted task "Old"' }] });
 
     const res = await request(app).post('/api/activity').set('Cookie', authCookie).send({ message: 'Deleted task "Old"' });
     expect(res.status).toBe(201);

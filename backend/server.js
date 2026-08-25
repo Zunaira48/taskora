@@ -2,7 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const { sql, getPool } = require('./db');
+const { pool } = require('./db');
 const { hashPassword, comparePassword, signToken, COOKIE_OPTIONS } = require('./auth');
 const requireAuth = require('./middleware/requireAuth');
 const { generalLimiter, authLimiter } = require('./middleware/rateLimiters');
@@ -32,28 +32,21 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'A valid email and a password of at least 6 characters are required' });
     }
 
-    const pool = await getPool();
-
-    const existing = await pool.request()
-      .input('Email', sql.NVarChar, email.toLowerCase().trim())
-      .query('SELECT Id FROM Users WHERE Email = @Email');
-
-    if (existing.recordset.length > 0) {
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (existing.rows.length > 0) {
       return res.status(409).json({ error: 'An account with this email already exists' });
     }
 
     const passwordHash = await hashPassword(password);
 
-    const result = await pool.request()
-      .input('Email', sql.NVarChar, email.toLowerCase().trim())
-      .input('PasswordHash', sql.NVarChar, passwordHash)
-      .query(`
-        INSERT INTO Users (Id, Email, PasswordHash, CreatedAt)
-        OUTPUT INSERTED.Id, INSERTED.Email
-        VALUES (NEWID(), @Email, @PasswordHash, GETUTCDATE())
-      `);
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash)
+       VALUES ($1, $2)
+       RETURNING id AS "Id", email AS "Email"`,
+      [email.toLowerCase().trim(), passwordHash]
+    );
 
-    const user = result.recordset[0];
+    const user = result.rows[0];
     const token = signToken(user.Id, user.Email);
     res.cookie('token', token, COOKIE_OPTIONS);
     res.status(201).json({ email: user.Email });
@@ -71,13 +64,12 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('Email', sql.NVarChar, email.toLowerCase().trim())
-      .query('SELECT Id, Email, PasswordHash FROM Users WHERE Email = @Email');
+    const result = await pool.query(
+      'SELECT id AS "Id", email AS "Email", password_hash AS "PasswordHash" FROM users WHERE email = $1',
+      [email.toLowerCase().trim()]
+    );
 
-    const user = result.recordset[0];
-    // Deliberately vague error message below — don't reveal whether the email exists or the password was wrong
+    const user = result.rows[0];
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -109,11 +101,14 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 
 app.get('/api/tasks', requireAuth, async (req, res) => {
   try {
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('UserId', sql.UniqueIdentifier, req.userId)
-      .query('SELECT * FROM Tasks WHERE UserId = @UserId ORDER BY CreatedAt DESC');
-    res.json(result.recordset);
+    const result = await pool.query(
+      `SELECT id AS "Id", title AS "Title", category AS "Category", priority AS "Priority",
+              status AS "Status", due_date AS "DueDate", labels AS "Labels", notes AS "Notes",
+              created_at AS "CreatedAt", updated_at AS "UpdatedAt"
+       FROM tasks WHERE user_id = $1 ORDER BY created_at DESC`,
+      [req.userId]
+    );
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch tasks' });
@@ -135,21 +130,16 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Category must be under 100 characters' });
     }
 
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('UserId', sql.UniqueIdentifier, req.userId)
-      .input('Title', sql.NVarChar, title)
-      .input('Category', sql.NVarChar, category || 'General')
-      .input('Priority', sql.NVarChar, priority || 'medium')
-      .input('DueDate', sql.Date, dueDate || null)
-      .input('Labels', sql.NVarChar, labels || null)
-      .query(`
-        INSERT INTO Tasks (Id, UserId, Title, Category, Priority, Status, DueDate, Labels, CreatedAt, UpdatedAt)
-        OUTPUT INSERTED.*
-        VALUES (NEWID(), @UserId, @Title, @Category, @Priority, 'todo', @DueDate, @Labels, GETUTCDATE(), GETUTCDATE())
-      `);
+    const result = await pool.query(
+      `INSERT INTO tasks (user_id, title, category, priority, status, due_date, labels)
+       VALUES ($1, $2, $3, $4, 'todo', $5, $6)
+       RETURNING id AS "Id", title AS "Title", category AS "Category", priority AS "Priority",
+                 status AS "Status", due_date AS "DueDate", labels AS "Labels", notes AS "Notes",
+                 created_at AS "CreatedAt", updated_at AS "UpdatedAt"`,
+      [req.userId, title, category || 'General', priority || 'medium', dueDate || null, labels || null]
+    );
 
-    res.status(201).json(result.recordset[0]);
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create task' });
@@ -159,25 +149,18 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
 app.put('/api/tasks/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const allowedFields = { title: 'Title', category: 'Category', priority: 'Priority', status: 'Status', dueDate: 'DueDate', labels: 'Labels', notes: 'Notes' };
+    const allowedFields = { title: 'title', category: 'category', priority: 'priority', status: 'status', dueDate: 'due_date', labels: 'labels', notes: 'notes' };
     const updates = req.body;
 
-    const pool = await getPool();
-    const request = pool.request()
-      .input('Id', sql.UniqueIdentifier, id)
-      .input('UserId', sql.UniqueIdentifier, req.userId);
-
     const setClauses = [];
+    const values = [];
+    let paramIndex = 1;
+
     for (const [key, column] of Object.entries(allowedFields)) {
       if (key in updates) {
-        if (key === 'dueDate') {
-          request.input(column, sql.Date, updates[key] || null);
-        } else if (key === 'notes') {
-          request.input(column, sql.NVarChar(sql.MAX), updates[key] || null);
-        } else {
-          request.input(column, sql.NVarChar, updates[key]);
-        }
-        setClauses.push(`${column} = @${column}`);
+        setClauses.push(`${column} = $${paramIndex}`);
+        values.push(updates[key] === '' ? null : updates[key]);
+        paramIndex++;
       }
     }
 
@@ -185,21 +168,25 @@ app.put('/api/tasks/:id', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
 
-    setClauses.push('UpdatedAt = GETUTCDATE()');
+    setClauses.push('updated_at = NOW()');
+    values.push(id, req.userId);
 
-    // WHERE clause includes UserId — this is what stops one user editing another's task by guessing an Id
-    const result = await request.query(`
-      UPDATE Tasks
-      SET ${setClauses.join(', ')}
-      OUTPUT INSERTED.*
-      WHERE Id = @Id AND UserId = @UserId
-    `);
+    // WHERE clause still includes user_id — this is what stops one user editing another's task by guessing an id
+    const result = await pool.query(
+      `UPDATE tasks
+       SET ${setClauses.join(', ')}
+       WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
+       RETURNING id AS "Id", title AS "Title", category AS "Category", priority AS "Priority",
+                 status AS "Status", due_date AS "DueDate", labels AS "Labels", notes AS "Notes",
+                 created_at AS "CreatedAt", updated_at AS "UpdatedAt"`,
+      values
+    );
 
-    if (result.recordset.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    res.json(result.recordset[0]);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update task' });
@@ -209,13 +196,12 @@ app.put('/api/tasks/:id', requireAuth, async (req, res) => {
 app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('Id', sql.UniqueIdentifier, id)
-      .input('UserId', sql.UniqueIdentifier, req.userId)
-      .query('DELETE FROM Tasks WHERE Id = @Id AND UserId = @UserId');
+    const result = await pool.query(
+      'DELETE FROM tasks WHERE id = $1 AND user_id = $2',
+      [id, req.userId]
+    );
 
-    if (result.rowsAffected[0] === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
     res.status(204).send();
@@ -229,11 +215,12 @@ app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
 
 app.get('/api/activity', requireAuth, async (req, res) => {
   try {
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('UserId', sql.UniqueIdentifier, req.userId)
-      .query('SELECT TOP 10 * FROM Activity WHERE UserId = @UserId ORDER BY Timestamp DESC');
-    res.json(result.recordset);
+    const result = await pool.query(
+      `SELECT id AS "Id", message AS "Message", timestamp AS "Timestamp"
+       FROM activity WHERE user_id = $1 ORDER BY timestamp DESC LIMIT 10`,
+      [req.userId]
+    );
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch activity' });
@@ -245,17 +232,14 @@ app.post('/api/activity', requireAuth, async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Message is required' });
 
-    const pool = await getPool();
-    const result = await pool.request()
-      .input('UserId', sql.UniqueIdentifier, req.userId)
-      .input('Message', sql.NVarChar, message)
-      .query(`
-        INSERT INTO Activity (Id, UserId, Message, Timestamp)
-        OUTPUT INSERTED.*
-        VALUES (NEWID(), @UserId, @Message, GETUTCDATE())
-      `);
+    const result = await pool.query(
+      `INSERT INTO activity (user_id, message)
+       VALUES ($1, $2)
+       RETURNING id AS "Id", message AS "Message", timestamp AS "Timestamp"`,
+      [req.userId, message]
+    );
 
-    res.status(201).json(result.recordset[0]);
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to log activity' });
