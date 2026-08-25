@@ -1,22 +1,30 @@
 const express = require('express');
+const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { sql, getPool } = require('./db');
 const { hashPassword, comparePassword, signToken, COOKIE_OPTIONS } = require('./auth');
 const requireAuth = require('./middleware/requireAuth');
+const { generalLimiter, authLimiter } = require('./middleware/rateLimiters');
 
 const app = express();
 
+app.use(helmet());
 app.use(cors({
   origin: 'http://127.0.0.1:5500', // must be an exact origin (not '*') when credentials are used
   credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use('/api/', generalLimiter);
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // ===== AUTH =====
 
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -55,7 +63,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -112,11 +120,19 @@ app.get('/api/tasks', requireAuth, async (req, res) => {
   }
 });
 
+const VALID_PRIORITIES = ['low', 'medium', 'high'];
+
 app.post('/api/tasks', requireAuth, async (req, res) => {
   try {
     const { title, category, priority, dueDate, labels } = req.body;
-    if (!title || !title.trim()) {
-      return res.status(400).json({ error: 'Title is required' });
+    if (!title || !title.trim() || title.length > 255) {
+      return res.status(400).json({ error: 'Title is required and must be under 255 characters' });
+    }
+    if (priority && !VALID_PRIORITIES.includes(priority)) {
+      return res.status(400).json({ error: 'Priority must be low, medium, or high' });
+    }
+    if (category && category.length > 100) {
+      return res.status(400).json({ error: 'Category must be under 100 characters' });
     }
 
     const pool = await getPool();
@@ -246,7 +262,7 @@ app.post('/api/activity', requireAuth, async (req, res) => {
   }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   app.listen(PORT, () => console.log(`Taskora backend running on http://localhost:${PORT}`));
 }
