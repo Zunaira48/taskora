@@ -1,4 +1,4 @@
-const AUTH_API = "http://127.0.0.1:3000/api/auth";
+const AUTH_API = `${API_BASE_URL}/auth`;
 
 async function registerAccount(email, password) {
   const res = await fetch(`${AUTH_API}/register`, {

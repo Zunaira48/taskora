@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:3000/api";
+const API_BASE = API_BASE_URL;
 
 function mapTaskFromApi(row) {
   return {
