@@ -1,0 +1,151 @@
+/* Tablet and below: sidebar becomes a horizontal top bar instead of a fixed side column */
+/* Tablet and below: sidebar becomes a compact top bar with a hamburger menu */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+   body {
+    overflow-x: hidden;
+  }
+    .main-content {
+    min-width: 0; /* stops this grid item from expanding to fit its widest child (the board) — lets .board's own overflow-x:auto actually take effect */
+  }
+
+  .sidebar {
+    position: relative;
+    flex-direction: row;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .sidebar__logo-text {
+    margin-bottom: 0;
+  }
+
+  .sidebar__menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    margin-right: auto; /* pushes theme toggle + profile to the far right */
+  }
+
+  .sidebar__menu-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: #fff;
+    border-radius: 1px;
+  }
+
+  /* Hidden by default on mobile; JS toggles --open */
+  .sidebar__nav {
+    display: none;
+  }
+
+  .sidebar__nav--open {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-ink);
+    padding: var(--space-3);
+    z-index: 40;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar__nav--open .sidebar__nav-list {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .theme-toggle {
+    margin: 0;
+    width: auto;
+  }
+
+  .sidebar__profile {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    flex-shrink: 0;
+  }
+
+  .sidebar__profile-name {
+    display: none;
+  }
+
+  .dashboard__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard__panels {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .board {
+    display: flex;
+    gap: var(--space-4);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iOS Safari */
+    padding-bottom: var(--space-2);
+  }
+
+  .board__column {
+    flex: 0 0 260px; /* fixed width — this is what makes flex overflow into a scrollbar instead of squeezing columns */
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+    .board__scroll-hint {
+    display: inline-block;
+    background: var(--gradient-dawn);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: var(--space-3);
+  }
+}
+
+/* Phones: tighten further */
+@media (max-width: 480px) {
+  .main-content {
+    padding: var(--space-3);
+  }
+
+  .dashboard__greeting {
+    font-size: 1.5rem;
+  }
+
+  .dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .dashboard__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .modal {
+    margin: var(--space-3);
+    max-width: none;
+  }
+}

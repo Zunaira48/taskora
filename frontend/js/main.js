@@ -66,10 +66,16 @@ async function handleLogout() {
 }
 
 async function initializeApp() {
-  loadSavedTheme();
-  document.getElementById("taskPriority").value = localStorage.getItem("taskora_default_priority") || "medium";
-  await seedTasksIfEmpty();
-  await refreshUI();
+  const loadingEl = document.getElementById("appLoading");
+  loadingEl.classList.add("app-loading--visible");
+  try {
+    loadSavedTheme();
+    document.getElementById("taskPriority").value = localStorage.getItem("taskora_default_priority") || "medium";
+    await seedTasksIfEmpty();
+    await refreshUI();
+  } finally {
+    loadingEl.classList.remove("app-loading--visible");
+  }
 }
 
 // ===== CORE APP LOGIC =====
@@ -392,6 +398,11 @@ async function renderBoard() {
   columns.inprogress.innerHTML = "";
   columns.done.innerHTML = "";
 
+  if (tasks.length === 0) {
+    columns.todo.innerHTML = `<li class="board__card board__card--empty">No tasks yet — add one from the dashboard.</li>`;
+    return;
+  }
+
   tasks.forEach(task => {
     const key = task.status === "in-progress" ? "inprogress" : task.status;
     const card = document.createElement("li");
@@ -634,10 +645,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("filterSelect").addEventListener("change", renderTaskList);
   document.getElementById("sortSelect").addEventListener("change", renderTaskList);
 
+  const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+  const sidebarNav = document.getElementById("sidebarNav");
+
+  mobileMenuToggle.addEventListener("click", () => {
+    const isOpen = sidebarNav.classList.toggle("sidebar__nav--open");
+    mobileMenuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+
   document.querySelectorAll(".sidebar__nav-link[data-page]").forEach(link => {
     link.addEventListener("click", async (e) => {
       e.preventDefault();
       await switchPage(link.dataset.page);
+      sidebarNav.classList.remove("sidebar__nav--open"); // close the mobile menu after picking a page
+      mobileMenuToggle.setAttribute("aria-expanded", "false");
     });
   });
 

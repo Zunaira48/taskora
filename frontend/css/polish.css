@@ -79,3 +79,20 @@
 .backend-banner--visible {
   display: block;
 }
+
+.app-loading {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  z-index: 50;
+}
+
+.app-loading--visible {
+  display: flex;
+}

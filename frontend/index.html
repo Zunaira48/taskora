@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="css/polish.css">
   <link rel="stylesheet" href="css/components/auth.css">
   <link rel="stylesheet" href="css/components/notepad.css">
+<link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 <div class="auth-screen" id="authScreen">
@@ -49,6 +50,7 @@
   </div>
 </div>
 <div class="app" id="appRoot" style="display: none;">
+<div class="app-loading" id="appLoading">Loading your tasks…</div>
 <div class="backend-banner" id="backendBanner">
   ⚠️ Can't reach the server. Make sure the backend is running.
 </div>
@@ -57,7 +59,11 @@
       <span class="sidebar__logo-text">Taskora</span>
     </div>
 
-    <nav class="sidebar__nav" aria-label="Main navigation">
+    <button class="sidebar__menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="sidebar__nav" id="sidebarNav" aria-label="Main navigation">
       <ul class="sidebar__nav-list">
         <li><a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-page="page-dashboard">Dashboard</a></li>
         <li><a href="#" class="sidebar__nav-link" data-page="page-taskboard">Task board</a></li>
@@ -147,6 +153,8 @@
       <header class="dashboard__header">
         <h1 class="dashboard__greeting">Task board</h1>
       </header>
+
+      <span class="board__scroll-hint">← Swipe to see more →</span>
 
       <div class="board">
         <div class="board__column">

@@ -53,3 +53,15 @@
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
 }
+
+.board__card--empty {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.board__scroll-hint {
+  display: none;
+}
