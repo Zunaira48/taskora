@@ -19,3 +19,13 @@ const authLimiter = rateLimit({
 });
 
 module.exports = { generalLimiter, authLimiter };
+
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // AI calls are more expensive than a normal CRUD request — keep this tighter
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'AI request limit reached, please try again later' }
+});
+
+module.exports = { generalLimiter, authLimiter, aiLimiter };

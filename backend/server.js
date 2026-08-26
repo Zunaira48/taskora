@@ -5,7 +5,8 @@ const cookieParser = require('cookie-parser');
 const { pool } = require('./db');
 const { hashPassword, comparePassword, signToken, COOKIE_OPTIONS } = require('./auth');
 const requireAuth = require('./middleware/requireAuth');
-const { generalLimiter, authLimiter } = require('./middleware/rateLimiters');
+const { generalLimiter, authLimiter, aiLimiter } = require('./middleware/rateLimiters');
+const aiService = require('./services/ai/aiService');
 
 const app = express();
 
@@ -243,6 +244,18 @@ app.post('/api/activity', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to log activity' });
+  }
+});
+
+// ===== AI (foundation only — real features come in Phase 8) =====
+
+app.post('/api/ai/ping', requireAuth, aiLimiter, async (req, res) => {
+  try {
+    const reply = await aiService.ping('Reply with exactly the word: pong');
+    res.json({ reply });
+  } catch (err) {
+    console.error('AI request failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
   }
 });
 
