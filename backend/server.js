@@ -11,7 +11,7 @@ const app = express();
 
 app.use(helmet());
 app.use(cors({
-  origin: 'http://127.0.0.1:5500', // must be an exact origin (not '*') when credentials are used
+  origin: process.env.FRONTEND_URL, // must be an exact origin (not '*') when credentials are used
   credentials: true
 }));
 app.use(express.json());

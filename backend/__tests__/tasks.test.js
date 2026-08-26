@@ -84,3 +84,35 @@ describe('DELETE /api/tasks/:id', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('User isolation', () => {
+  test('GET /api/tasks scopes the query to the logged-in user', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    await request(app).get('/api/tasks').set('Cookie', authCookie);
+
+    const [queryText, params] = pool.query.mock.calls[0];
+    expect(queryText).toMatch(/WHERE user_id = \$1/);
+    expect(params).toEqual(['user-1']);
+  });
+
+  test('PUT /api/tasks/:id includes user_id in the WHERE clause, not just the task id', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ Id: 't1', Status: 'done' }] });
+
+    await request(app).put('/api/tasks/t1').set('Cookie', authCookie).send({ status: 'done' });
+
+    const [queryText, params] = pool.query.mock.calls[0];
+    expect(queryText).toMatch(/WHERE id = \$\d+ AND user_id = \$\d+/);
+    expect(params).toContain('user-1');
+  });
+
+  test('DELETE /api/tasks/:id includes user_id in the WHERE clause, not just the task id', async () => {
+    pool.query.mockResolvedValueOnce({ rowCount: 1 });
+
+    await request(app).delete('/api/tasks/t1').set('Cookie', authCookie);
+
+    const [queryText, params] = pool.query.mock.calls[0];
+    expect(queryText).toMatch(/user_id/);
+    expect(params).toContain('user-1');
+  });
+});

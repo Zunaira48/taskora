@@ -21,11 +21,13 @@ function verifyToken(token) {
   return jwt.verify(token, JWT_SECRET); // throws if invalid/expired
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const COOKIE_OPTIONS = {
-  httpOnly: true,      // JS on the page can never read this cookie — key XSS protection
-  secure: false,       // set to true once you're on HTTPS (e.g. after deployment)
-  sameSite: 'lax',     // fine for local dev (same host, different ports); revisit for cross-domain deployment
-  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days, matches token expiry
+  httpOnly: true,                          // JS on the page can never read this cookie — key XSS protection
+  secure: isProduction,                    // HTTPS-only in production; false locally since 127.0.0.1 isn't HTTPS
+  sameSite: isProduction ? 'none' : 'lax', // cross-site (Vercel → Render) needs 'none'; same-machine dev is fine with 'lax'
+  maxAge: 7 * 24 * 60 * 60 * 1000          // 7 days, matches token expiry
 };
 
 module.exports = { hashPassword, comparePassword, signToken, verifyToken, COOKIE_OPTIONS };

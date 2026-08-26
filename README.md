@@ -191,4 +191,4 @@ See [`docs/QA-TEST-PLAN.md`](docs/QA-TEST-PLAN.md) for the manual test cases use
 
 ## License
 
-Personal / educational project.
+Personal / educational project.cd C:\Users\HP\Projects\taskora
