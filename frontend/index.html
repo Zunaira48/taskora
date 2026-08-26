@@ -93,9 +93,12 @@
           <h1 class="dashboard__greeting">Good morning</h1>
           <p class="dashboard__subtext">You have 5 tasks due today</p>
         </div>
-        <button class="btn btn--primary" type="button" id="quickAddBtn">
-          <span>Quick add</span>
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" type="button" id="smartAddBtn">✨ Smart add</button>
+          <button class="btn btn--primary" type="button" id="quickAddBtn">
+            <span>Quick add</span>
+          </button>
+        </div>
       </header>
 
       <div class="dashboard__toolbar">
@@ -290,6 +293,13 @@
 
       <label class="field-label" for="taskTitle">Title</label>
       <input type="text" id="taskTitle" class="input" required />
+      <button type="button" class="btn ai-breakdown-btn" id="aiBreakdownBtn">✨ Break down with AI</button>
+
+      <div class="ai-breakdown-results" id="aiBreakdownResults" style="display: none;">
+        <p class="ai-breakdown-results__label">Suggested subtasks — pick the ones to add:</p>
+        <ul class="ai-breakdown-list" id="aiBreakdownList"></ul>
+        <button type="button" class="btn btn--primary" id="aiAddSelectedBtn">Add selected as tasks</button>
+      </div>
 
       <label class="field-label" for="taskCategory">Category</label>
       <input type="text" id="taskCategory" class="input" placeholder="e.g. Work, Study" />
@@ -312,6 +322,44 @@
     </form>
   </div>
 </div>
+
+  <div class="modal-overlay" id="smartAddModalOverlay">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title">Smart add</h2>
+        <button class="modal__close" id="smartAddModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <label class="field-label" for="smartAddInput">Describe the task in your own words</label>
+      <textarea id="smartAddInput" class="input" rows="3" placeholder="e.g. Finish the API docs by Friday, it's urgent"></textarea>
+
+      <button type="button" class="btn btn--primary" id="smartAddExtractBtn" style="margin-top: 8px;">✨ Extract task details</button>
+
+      <div id="smartAddReview" style="display: none; margin-top: 16px;">
+        <p class="field-label">Review before adding:</p>
+        <label class="field-label" for="smartTitle">Title</label>
+        <input type="text" id="smartTitle" class="input" />
+
+        <label class="field-label" for="smartCategory">Category</label>
+        <input type="text" id="smartCategory" class="input" />
+
+        <label class="field-label" for="smartPriority">Priority</label>
+        <select id="smartPriority" class="select">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+
+        <label class="field-label" for="smartDueDate">Due date</label>
+        <input type="date" id="smartDueDate" class="input" />
+
+        <label class="field-label" for="smartLabels">Labels (comma-separated)</label>
+        <input type="text" id="smartLabels" class="input" />
+
+        <button type="button" class="btn btn--primary modal__submit" id="smartAddConfirmBtn">Add task</button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal-overlay" id="notesModalOverlay">
     <div class="modal notepad">

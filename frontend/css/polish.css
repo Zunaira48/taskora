@@ -96,3 +96,37 @@
 .app-loading--visible {
   display: flex;
 }
+
+.ai-breakdown-btn {
+  margin: 8px 0;
+  font-size: 0.8rem;
+  background: var(--color-aurora-light);
+  color: var(--color-aurora);
+}
+
+.ai-breakdown-results {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
+}
+
+.ai-breakdown-results__label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.ai-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+}
+
+.ai-breakdown-list li {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -252,6 +252,69 @@ function closeModal() {
   document.getElementById("modalOverlay").classList.remove("modal-overlay--open");
   document.getElementById("taskForm").reset();
   document.getElementById("editingTaskId").value = "";
+  hideAiBreakdownResults();
+}
+
+function hideAiBreakdownResults() {
+  document.getElementById("aiBreakdownResults").style.display = "none";
+  document.getElementById("aiBreakdownList").innerHTML = "";
+}
+
+async function handleAiBreakdown() {
+  const title = document.getElementById("taskTitle").value.trim();
+  if (!title) {
+    alert("Enter a task title first.");
+    return;
+  }
+
+  const btn = document.getElementById("aiBreakdownBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/breakdown`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const { subtasks } = await res.json();
+    const listEl = document.getElementById("aiBreakdownList");
+    listEl.innerHTML = subtasks.map((subtask, i) => `
+      <li>
+        <input type="checkbox" id="ai-subtask-${i}" checked value="${subtask.replace(/"/g, '&quot;')}" />
+        <label for="ai-subtask-${i}">${subtask}</label>
+      </li>
+    `).join("");
+
+    document.getElementById("aiBreakdownResults").style.display = "block";
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function handleAddSelectedSubtasks() {
+  const checkboxes = document.querySelectorAll('#aiBreakdownList input[type="checkbox"]:checked');
+  const category = document.getElementById("taskCategory").value.trim() || "General";
+
+  for (const checkbox of checkboxes) {
+    await addTask({ title: checkbox.value, category, priority: "medium" });
+    await logActivity(`Added task "${checkbox.value}"`);
+  }
+
+  hideAiBreakdownResults();
+  closeModal();
+  await refreshUI();
 }
 
 async function handleTaskFormSubmit(e) {
@@ -632,9 +695,142 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     showAuthScreen();
   }
+function openSmartAddModal() {
+  document.getElementById("smartAddModalOverlay").classList.add("modal-overlay--open");
+  document.getElementById("smartAddInput").value = "";
+  document.getElementById("smartAddReview").style.display = "none";
+  document.getElementById("smartAddInput").focus();
+}
 
+function closeSmartAddModal() {
+  document.getElementById("smartAddModalOverlay").classList.remove("modal-overlay--open");
+}
+
+async function handleSmartAddExtract() {
+  const input = document.getElementById("smartAddInput").value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById("smartAddExtractBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/smart-task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const extracted = await res.json();
+    document.getElementById("smartTitle").value = extracted.title;
+    document.getElementById("smartCategory").value = extracted.category;
+    document.getElementById("smartPriority").value = extracted.priority;
+    document.getElementById("smartDueDate").value = extracted.dueDate || "";
+    document.getElementById("smartLabels").value = extracted.labels.join(", ");
+    document.getElementById("smartAddReview").style.display = "block";
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function handleSmartAddConfirm() {
+  const title = document.getElementById("smartTitle").value.trim();
+  if (!title) return;
+
+  const category = document.getElementById("smartCategory").value.trim() || "General";
+  const priority = document.getElementById("smartPriority").value;
+  const dueDate = document.getElementById("smartDueDate").value || null;
+  const labels = document.getElementById("smartLabels").value
+    .split(",").map(l => l.trim()).filter(Boolean);
+
+  await addTask({ title, category, priority, dueDate, labels });
+  await logActivity(`Added task "${title}"`);
+  closeSmartAddModal();
+  await refreshUI();
+}function openSmartAddModal() {
+  document.getElementById("smartAddModalOverlay").classList.add("modal-overlay--open");
+  document.getElementById("smartAddInput").value = "";
+  document.getElementById("smartAddReview").style.display = "none";
+  document.getElementById("smartAddInput").focus();
+}
+
+function closeSmartAddModal() {
+  document.getElementById("smartAddModalOverlay").classList.remove("modal-overlay--open");
+}
+
+async function handleSmartAddExtract() {
+  const input = document.getElementById("smartAddInput").value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById("smartAddExtractBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/smart-task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const extracted = await res.json();
+    document.getElementById("smartTitle").value = extracted.title;
+    document.getElementById("smartCategory").value = extracted.category;
+    document.getElementById("smartPriority").value = extracted.priority;
+    document.getElementById("smartDueDate").value = extracted.dueDate || "";
+    document.getElementById("smartLabels").value = extracted.labels.join(", ");
+    document.getElementById("smartAddReview").style.display = "block";
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function handleSmartAddConfirm() {
+  const title = document.getElementById("smartTitle").value.trim();
+  if (!title) return;
+
+  const category = document.getElementById("smartCategory").value.trim() || "General";
+  const priority = document.getElementById("smartPriority").value;
+  const dueDate = document.getElementById("smartDueDate").value || null;
+  const labels = document.getElementById("smartLabels").value
+    .split(",").map(l => l.trim()).filter(Boolean);
+
+  await addTask({ title, category, priority, dueDate, labels });
+  await logActivity(`Added task "${title}"`);
+  closeSmartAddModal();
+  await refreshUI();
+}
   document.getElementById("quickAddBtn").addEventListener("click", () => openModal());
+  document.getElementById("smartAddBtn").addEventListener("click", openSmartAddModal);
+  document.getElementById("smartAddModalClose").addEventListener("click", closeSmartAddModal);
+  document.getElementById("smartAddExtractBtn").addEventListener("click", handleSmartAddExtract);
+  document.getElementById("smartAddConfirmBtn").addEventListener("click", handleSmartAddConfirm);
+  document.getElementById("smartAddModalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "smartAddModalOverlay") closeSmartAddModal();
+  });
   document.getElementById("modalClose").addEventListener("click", closeModal);
+  document.getElementById("aiBreakdownBtn").addEventListener("click", handleAiBreakdown);
+  document.getElementById("aiAddSelectedBtn").addEventListener("click", handleAddSelectedSubtasks);
   document.getElementById("taskForm").addEventListener("submit", handleTaskFormSubmit);
   document.getElementById("modalOverlay").addEventListener("click", (e) => {
     if (e.target.id === "modalOverlay") closeModal();
