@@ -246,10 +246,40 @@ app.post('/api/activity', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to log activity' });
   }
 });
+app.post('/api/ai/breakdown', requireAuth, aiLimiter, async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title || !title.trim() || title.length > 255) {
+      return res.status(400).json({ error: 'A task title is required' });
+    }
 
+    const subtasks = await aiService.breakdownTask(title.trim());
+    res.json({ subtasks });
+  } catch (err) {
+    console.error('AI breakdown failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
+  }
+});
+
+app.post('/api/ai/smart-task', requireAuth, aiLimiter, async (req, res) => {
+  try {
+    const { input } = req.body;
+    if (!input || !input.trim() || input.length > 500) {
+      return res.status(400).json({ error: 'A description is required (max 500 characters)' });
+    }
+
+    const extracted = await aiService.extractSmartTask(input.trim());
+    res.json(extracted);
+  } catch (err) {
+    console.error('AI smart task extraction failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
+  }
+});
 // ===== AI (foundation only — real features come in Phase 8) =====
 
+
 app.post('/api/ai/ping', requireAuth, aiLimiter, async (req, res) => {
+
   try {
     const reply = await aiService.ping('Reply with exactly the word: pong');
     res.json({ reply });

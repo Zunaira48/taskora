@@ -11,4 +11,18 @@ async function generateText(prompt) {
   return response.text;
 }
 
-module.exports = { generateText };
+// Constrains Gemini's output to match responseSchema (an OpenAPI-style schema object).
+// Still treat the result as untrusted — validate it again after parsing (see schemas.js).
+async function generateJSON(prompt, responseSchema) {
+  const response = await client.models.generateContent({
+    model: MODEL,
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema
+    }
+  });
+  return JSON.parse(response.text);
+}
+
+module.exports = { generateText, generateJSON };
