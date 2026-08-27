@@ -28,3 +28,26 @@ Extract:
 }
 
 module.exports = { buildTaskBreakdownPrompt, buildSmartTaskPrompt };
+
+function buildPriorityRecommendationPrompt(task) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+  return `You are recommending a priority level for a task based on its context.
+
+Today is ${dayName}, ${today}.
+
+Task details:
+- Title: "${task.title}"
+- Category: ${task.category}
+- Current priority: ${task.priority}
+- Status: ${task.status}
+- Due date: ${task.dueDate || 'none set'}
+
+Recommend a priority of "low", "medium", or "high" based on how urgent this task appears given its due date and status. If the due date is very close or has passed and the task isn't done, that should push priority up. If there's no due date and nothing suggests urgency, lean toward the existing priority unless the title itself suggests urgency.
+
+Provide a short reason (one sentence, plain language) explaining the recommendation — something the person could read and immediately understand, like "Due tomorrow and still not started."`;
+}
+
+module.exports = { buildTaskBreakdownPrompt, buildSmartTaskPrompt, buildPriorityRecommendationPrompt };

@@ -130,3 +130,11 @@
   align-items: center;
   gap: 6px;
 }
+
+.ai-priority-suggestion {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-top: 8px;
+  font-size: 0.85rem;
+}

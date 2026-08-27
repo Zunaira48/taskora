@@ -275,6 +275,37 @@ app.post('/api/ai/smart-task', requireAuth, aiLimiter, async (req, res) => {
     res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
   }
 });
+
+app.post('/api/ai/priority-recommendation/:id', requireAuth, aiLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `SELECT id AS "Id", title AS "Title", category AS "Category", priority AS "Priority",
+              status AS "Status", due_date AS "DueDate"
+       FROM tasks WHERE id = $1 AND user_id = $2`,
+      [id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const task = result.rows[0];
+    const recommendation = await aiService.recommendPriority({
+      title: task.Title,
+      category: task.Category,
+      priority: task.Priority,
+      status: task.Status,
+      dueDate: task.DueDate
+    });
+
+    res.json(recommendation);
+  } catch (err) {
+    console.error('AI priority recommendation failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
+  }
+});
 // ===== AI (foundation only — real features come in Phase 8) =====
 
 

@@ -71,3 +71,33 @@ module.exports = {
   SMART_TASK_RESPONSE_SCHEMA,
   validateSmartTask
 };
+
+const PRIORITY_RECOMMENDATION_SCHEMA = {
+  type: 'object',
+  properties: {
+    recommendedPriority: { type: 'string', enum: ['low', 'medium', 'high'] },
+    reason: { type: 'string' }
+  },
+  required: ['recommendedPriority', 'reason']
+};
+
+function validatePriorityRecommendation(data) {
+  if (!data || typeof data !== 'object' || !VALID_PRIORITIES.includes(data.recommendedPriority)) {
+    throw new Error('AI response was not in the expected format');
+  }
+
+  const reason = (typeof data.reason === 'string' && data.reason.trim())
+    ? data.reason.trim().slice(0, 200)
+    : 'No specific reason provided.';
+
+  return { recommendedPriority: data.recommendedPriority, reason };
+}
+
+module.exports = {
+  TASK_BREAKDOWN_RESPONSE_SCHEMA,
+  validateTaskBreakdown,
+  SMART_TASK_RESPONSE_SCHEMA,
+  validateSmartTask,
+  PRIORITY_RECOMMENDATION_SCHEMA,
+  validatePriorityRecommendation
+};

@@ -1,8 +1,9 @@
 const geminiProvider = require('./geminiProvider');
-const { buildTaskBreakdownPrompt, buildSmartTaskPrompt } = require('./prompts');
+const { buildTaskBreakdownPrompt, buildSmartTaskPrompt, buildPriorityRecommendationPrompt } = require('./prompts');
 const {
   TASK_BREAKDOWN_RESPONSE_SCHEMA, validateTaskBreakdown,
-  SMART_TASK_RESPONSE_SCHEMA, validateSmartTask
+  SMART_TASK_RESPONSE_SCHEMA, validateSmartTask,
+  PRIORITY_RECOMMENDATION_SCHEMA, validatePriorityRecommendation
 } = require('./schemas');
 
 async function ping(prompt) {
@@ -21,4 +22,10 @@ async function extractSmartTask(naturalLanguageInput) {
   return validateSmartTask(data);
 }
 
-module.exports = { ping, breakdownTask, extractSmartTask };
+async function recommendPriority(task) {
+  const prompt = buildPriorityRecommendationPrompt(task);
+  const data = await geminiProvider.generateJSON(prompt, PRIORITY_RECOMMENDATION_SCHEMA);
+  return validatePriorityRecommendation(data);
+}
+
+module.exports = { ping, breakdownTask, extractSmartTask, recommendPriority };

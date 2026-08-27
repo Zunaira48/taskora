@@ -312,6 +312,15 @@
         <option value="urgent">Urgent</option>
       </select>
 
+      <button type="button" class="btn ai-breakdown-btn" id="aiPriorityBtn" style="display: none;">✨ Suggest priority</button>
+      <div class="ai-priority-suggestion" id="aiPrioritySuggestion" style="display: none;">
+        <p id="aiPriorityText"></p>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <button type="button" class="btn btn--primary" id="aiPriorityAccept">Accept</button>
+          <button type="button" class="btn" id="aiPriorityReject">Dismiss</button>
+        </div>
+      </div>
+
       <label class="field-label" for="taskDueDate">Due date</label>
       <input type="date" id="taskDueDate" class="input" />
 

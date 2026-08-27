@@ -229,6 +229,9 @@ function openModal(task = null) {
   const form = document.getElementById("taskForm");
   form.reset();
 
+  const aiPriorityBtn = document.getElementById("aiPriorityBtn");
+  document.getElementById("aiPrioritySuggestion").style.display = "none";
+
   if (task) {
     document.getElementById("modalTitle").textContent = "Edit task";
     document.getElementById("modalSubmitBtn").textContent = "Save changes";
@@ -238,10 +241,12 @@ function openModal(task = null) {
     document.getElementById("taskPriority").value = task.priority;
     document.getElementById("taskDueDate").value = task.dueDate || "";
     document.getElementById("taskLabels").value = task.labels.join(", ");
+    aiPriorityBtn.style.display = "inline-block"; // only meaningful for an existing task
   } else {
     document.getElementById("modalTitle").textContent = "Add task";
     document.getElementById("modalSubmitBtn").textContent = "Add task";
     document.getElementById("editingTaskId").value = "";
+    aiPriorityBtn.style.display = "none";
   }
 
   document.getElementById("modalOverlay").classList.add("modal-overlay--open");
@@ -315,6 +320,48 @@ async function handleAddSelectedSubtasks() {
   hideAiBreakdownResults();
   closeModal();
   await refreshUI();
+}
+async function handleAiPriorityRecommend() {
+  const taskId = document.getElementById("editingTaskId").value;
+  if (!taskId) return;
+
+  const btn = document.getElementById("aiPriorityBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/priority-recommendation/${taskId}`, {
+      method: "POST"
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const { recommendedPriority, reason } = await res.json();
+    document.getElementById("aiPriorityText").textContent =
+      `Recommended: ${recommendedPriority.toUpperCase()} — ${reason}`;
+    document.getElementById("aiPrioritySuggestion").dataset.recommended = recommendedPriority;
+    document.getElementById("aiPrioritySuggestion").style.display = "block";
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+function handleAiPriorityAccept() {
+  const recommended = document.getElementById("aiPrioritySuggestion").dataset.recommended;
+  document.getElementById("taskPriority").value = recommended;
+  document.getElementById("aiPrioritySuggestion").style.display = "none";
+}
+
+function handleAiPriorityReject() {
+  document.getElementById("aiPrioritySuggestion").style.display = "none";
 }
 
 async function handleTaskFormSubmit(e) {
@@ -830,6 +877,9 @@ async function handleSmartAddConfirm() {
   });
   document.getElementById("modalClose").addEventListener("click", closeModal);
   document.getElementById("aiBreakdownBtn").addEventListener("click", handleAiBreakdown);
+  document.getElementById("aiPriorityBtn").addEventListener("click", handleAiPriorityRecommend);
+  document.getElementById("aiPriorityAccept").addEventListener("click", handleAiPriorityAccept);
+  document.getElementById("aiPriorityReject").addEventListener("click", handleAiPriorityReject);
   document.getElementById("aiAddSelectedBtn").addEventListener("click", handleAddSelectedSubtasks);
   document.getElementById("taskForm").addEventListener("submit", handleTaskFormSubmit);
   document.getElementById("modalOverlay").addEventListener("click", (e) => {
