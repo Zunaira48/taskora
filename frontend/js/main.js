@@ -321,6 +321,7 @@ async function handleAddSelectedSubtasks() {
   closeModal();
   await refreshUI();
 }
+
 async function handleAiPriorityRecommend() {
   const taskId = document.getElementById("editingTaskId").value;
   if (!taskId) return;
@@ -362,6 +363,117 @@ function handleAiPriorityAccept() {
 
 function handleAiPriorityReject() {
   document.getElementById("aiPrioritySuggestion").style.display = "none";
+}
+
+function openSmartAddModal() {
+  document.getElementById("smartAddModalOverlay").classList.add("modal-overlay--open");
+  document.getElementById("smartAddInput").value = "";
+  document.getElementById("smartAddReview").style.display = "none";
+  document.getElementById("smartAddInput").focus();
+}
+
+function closeSmartAddModal() {
+  document.getElementById("smartAddModalOverlay").classList.remove("modal-overlay--open");
+}
+
+async function handleSmartAddExtract() {
+  const input = document.getElementById("smartAddInput").value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById("smartAddExtractBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/smart-task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const extracted = await res.json();
+    document.getElementById("smartTitle").value = extracted.title;
+    document.getElementById("smartCategory").value = extracted.category;
+    document.getElementById("smartPriority").value = extracted.priority;
+    document.getElementById("smartDueDate").value = extracted.dueDate || "";
+    document.getElementById("smartLabels").value = extracted.labels.join(", ");
+    document.getElementById("smartAddReview").style.display = "block";
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function handleSmartAddConfirm() {
+  const title = document.getElementById("smartTitle").value.trim();
+  if (!title) return;
+
+  const category = document.getElementById("smartCategory").value.trim() || "General";
+  const priority = document.getElementById("smartPriority").value;
+  const dueDate = document.getElementById("smartDueDate").value || null;
+  const labels = document.getElementById("smartLabels").value
+    .split(",").map(l => l.trim()).filter(Boolean);
+
+  await addTask({ title, category, priority, dueDate, labels });
+  await logActivity(`Added task "${title}"`);
+  closeSmartAddModal();
+  await refreshUI();
+}
+
+function openPlanMyDayModal() {
+  document.getElementById("planMyDayModalOverlay").classList.add("modal-overlay--open");
+}
+
+function closePlanMyDayModal() {
+  document.getElementById("planMyDayModalOverlay").classList.remove("modal-overlay--open");
+}
+
+async function handlePlanMyDay() {
+  const btn = document.getElementById("planMyDayBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/plan-my-day`, { method: "POST" });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const { summary, plan } = await res.json();
+    document.getElementById("planMyDaySummary").textContent = summary;
+
+    const listEl = document.getElementById("planMyDayList");
+    if (plan.length === 0) {
+      listEl.innerHTML = `<li style="color: var(--color-text-muted);">Nothing to plan right now.</li>`;
+    } else {
+      listEl.innerHTML = plan.map(item => `
+        <li style="background: var(--color-surface-alt); border-radius: var(--radius-md); padding: 10px 14px;">
+          <strong>${item.title}</strong>
+          <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 4px;">${item.reason}</div>
+        </li>
+      `).join("");
+    }
+
+    openPlanMyDayModal();
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 }
 
 async function handleTaskFormSubmit(e) {
@@ -742,133 +854,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     showAuthScreen();
   }
-function openSmartAddModal() {
-  document.getElementById("smartAddModalOverlay").classList.add("modal-overlay--open");
-  document.getElementById("smartAddInput").value = "";
-  document.getElementById("smartAddReview").style.display = "none";
-  document.getElementById("smartAddInput").focus();
-}
 
-function closeSmartAddModal() {
-  document.getElementById("smartAddModalOverlay").classList.remove("modal-overlay--open");
-}
-
-async function handleSmartAddExtract() {
-  const input = document.getElementById("smartAddInput").value.trim();
-  if (!input) return;
-
-  const btn = document.getElementById("smartAddExtractBtn");
-  const originalText = btn.textContent;
-  btn.textContent = "Thinking…";
-  btn.disabled = true;
-
-  try {
-    const res = await safeFetch(`${API_BASE}/ai/smart-task`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ input })
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
-      return;
-    }
-
-    const extracted = await res.json();
-    document.getElementById("smartTitle").value = extracted.title;
-    document.getElementById("smartCategory").value = extracted.category;
-    document.getElementById("smartPriority").value = extracted.priority;
-    document.getElementById("smartDueDate").value = extracted.dueDate || "";
-    document.getElementById("smartLabels").value = extracted.labels.join(", ");
-    document.getElementById("smartAddReview").style.display = "block";
-  } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
-}
-
-async function handleSmartAddConfirm() {
-  const title = document.getElementById("smartTitle").value.trim();
-  if (!title) return;
-
-  const category = document.getElementById("smartCategory").value.trim() || "General";
-  const priority = document.getElementById("smartPriority").value;
-  const dueDate = document.getElementById("smartDueDate").value || null;
-  const labels = document.getElementById("smartLabels").value
-    .split(",").map(l => l.trim()).filter(Boolean);
-
-  await addTask({ title, category, priority, dueDate, labels });
-  await logActivity(`Added task "${title}"`);
-  closeSmartAddModal();
-  await refreshUI();
-}function openSmartAddModal() {
-  document.getElementById("smartAddModalOverlay").classList.add("modal-overlay--open");
-  document.getElementById("smartAddInput").value = "";
-  document.getElementById("smartAddReview").style.display = "none";
-  document.getElementById("smartAddInput").focus();
-}
-
-function closeSmartAddModal() {
-  document.getElementById("smartAddModalOverlay").classList.remove("modal-overlay--open");
-}
-
-async function handleSmartAddExtract() {
-  const input = document.getElementById("smartAddInput").value.trim();
-  if (!input) return;
-
-  const btn = document.getElementById("smartAddExtractBtn");
-  const originalText = btn.textContent;
-  btn.textContent = "Thinking…";
-  btn.disabled = true;
-
-  try {
-    const res = await safeFetch(`${API_BASE}/ai/smart-task`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ input })
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
-      return;
-    }
-
-    const extracted = await res.json();
-    document.getElementById("smartTitle").value = extracted.title;
-    document.getElementById("smartCategory").value = extracted.category;
-    document.getElementById("smartPriority").value = extracted.priority;
-    document.getElementById("smartDueDate").value = extracted.dueDate || "";
-    document.getElementById("smartLabels").value = extracted.labels.join(", ");
-    document.getElementById("smartAddReview").style.display = "block";
-  } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
-}
-
-async function handleSmartAddConfirm() {
-  const title = document.getElementById("smartTitle").value.trim();
-  if (!title) return;
-
-  const category = document.getElementById("smartCategory").value.trim() || "General";
-  const priority = document.getElementById("smartPriority").value;
-  const dueDate = document.getElementById("smartDueDate").value || null;
-  const labels = document.getElementById("smartLabels").value
-    .split(",").map(l => l.trim()).filter(Boolean);
-
-  await addTask({ title, category, priority, dueDate, labels });
-  await logActivity(`Added task "${title}"`);
-  closeSmartAddModal();
-  await refreshUI();
-}
   document.getElementById("quickAddBtn").addEventListener("click", () => openModal());
   document.getElementById("smartAddBtn").addEventListener("click", openSmartAddModal);
+  document.getElementById("planMyDayBtn").addEventListener("click", handlePlanMyDay);
+  document.getElementById("planMyDayModalClose").addEventListener("click", closePlanMyDayModal);
+  document.getElementById("planMyDayModalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "planMyDayModalOverlay") closePlanMyDayModal();
+  });
   document.getElementById("smartAddModalClose").addEventListener("click", closeSmartAddModal);
   document.getElementById("smartAddExtractBtn").addEventListener("click", handleSmartAddExtract);
   document.getElementById("smartAddConfirmBtn").addEventListener("click", handleSmartAddConfirm);

@@ -51,3 +51,31 @@ Provide a short reason (one sentence, plain language) explaining the recommendat
 }
 
 module.exports = { buildTaskBreakdownPrompt, buildSmartTaskPrompt, buildPriorityRecommendationPrompt };
+
+function buildPlanMyDayPrompt(tasks) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+  const taskList = tasks.map(t =>
+    `- id: ${t.id} | "${t.title}" | priority: ${t.priority} | status: ${t.status} | due: ${t.dueDate || 'none'}`
+  ).join('\n');
+
+  return `You are a productivity assistant helping someone plan their day.
+
+Today is ${dayName}, ${today}.
+
+Here are their current open tasks:
+${taskList}
+
+Select and order a practical subset of these tasks for today — don't necessarily include everything, just what's realistic to focus on. Prioritize overdue and due-soon items, then high priority, then everything else. For each task you include, give a short one-sentence reason. Also provide a brief one-sentence overall summary of the day's focus.
+
+Reference tasks only by their exact id shown above — do not invent ids.`;
+}
+
+module.exports = {
+  buildTaskBreakdownPrompt,
+  buildSmartTaskPrompt,
+  buildPriorityRecommendationPrompt,
+  buildPlanMyDayPrompt
+};

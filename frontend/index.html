@@ -88,13 +88,14 @@
 
     <section id="page-dashboard" class="page">
 
-      <header class="dashboard__header">
+            <header class="dashboard__header">
         <div>
           <h1 class="dashboard__greeting">Good morning</h1>
           <p class="dashboard__subtext">You have 5 tasks due today</p>
         </div>
         <div style="display: flex; gap: 8px;">
           <button class="btn" type="button" id="smartAddBtn">✨ Smart add</button>
+          <button class="btn" type="button" id="planMyDayBtn">✨ Plan My Day</button>
           <button class="btn btn--primary" type="button" id="quickAddBtn">
             <span>Quick add</span>
           </button>
@@ -331,6 +332,18 @@
     </form>
   </div>
 </div>
+
+  <div class="modal-overlay" id="planMyDayModalOverlay">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title">Plan My Day</h2>
+        <button class="modal__close" id="planMyDayModalClose" aria-label="Close">&times;</button>
+      </div>
+
+      <p id="planMyDaySummary" style="font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 12px;"></p>
+      <ol id="planMyDayList" style="display: flex; flex-direction: column; gap: 10px; padding-left: 0; list-style: none;"></ol>
+    </div>
+  </div>
 
   <div class="modal-overlay" id="smartAddModalOverlay">
     <div class="modal">

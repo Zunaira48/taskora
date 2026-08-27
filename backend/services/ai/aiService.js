@@ -1,9 +1,13 @@
 const geminiProvider = require('./geminiProvider');
-const { buildTaskBreakdownPrompt, buildSmartTaskPrompt, buildPriorityRecommendationPrompt } = require('./prompts');
+const {
+  buildTaskBreakdownPrompt, buildSmartTaskPrompt,
+  buildPriorityRecommendationPrompt, buildPlanMyDayPrompt
+} = require('./prompts');
 const {
   TASK_BREAKDOWN_RESPONSE_SCHEMA, validateTaskBreakdown,
   SMART_TASK_RESPONSE_SCHEMA, validateSmartTask,
-  PRIORITY_RECOMMENDATION_SCHEMA, validatePriorityRecommendation
+  PRIORITY_RECOMMENDATION_SCHEMA, validatePriorityRecommendation,
+  PLAN_MY_DAY_SCHEMA, validatePlanMyDay
 } = require('./schemas');
 
 async function ping(prompt) {
@@ -28,4 +32,11 @@ async function recommendPriority(task) {
   return validatePriorityRecommendation(data);
 }
 
-module.exports = { ping, breakdownTask, extractSmartTask, recommendPriority };
+async function planMyDay(tasks) {
+  const prompt = buildPlanMyDayPrompt(tasks);
+  const data = await geminiProvider.generateJSON(prompt, PLAN_MY_DAY_SCHEMA);
+  const validTaskIds = new Set(tasks.map(t => t.id));
+  return validatePlanMyDay(data, validTaskIds);
+}
+
+module.exports = { ping, breakdownTask, extractSmartTask, recommendPriority, planMyDay };

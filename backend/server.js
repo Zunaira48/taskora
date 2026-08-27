@@ -306,6 +306,45 @@ app.post('/api/ai/priority-recommendation/:id', requireAuth, aiLimiter, async (r
     res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
   }
 });
+
+app.post('/api/ai/plan-my-day', requireAuth, aiLimiter, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id AS "Id", title AS "Title", priority AS "Priority", status AS "Status", due_date AS "DueDate"
+       FROM tasks
+       WHERE user_id = $1 AND status != 'done'
+       ORDER BY due_date ASC NULLS LAST, created_at DESC
+       LIMIT 20`,
+      [req.userId]
+    );
+
+    const tasks = result.rows.map(row => ({
+      id: row.Id,
+      title: row.Title,
+      priority: row.Priority,
+      status: row.Status,
+      dueDate: row.DueDate
+    }));
+
+    if (tasks.length === 0) {
+      return res.json({ summary: "You're all caught up — nothing open to plan.", plan: [] });
+    }
+
+    const { summary, plan } = await aiService.planMyDay(tasks);
+
+    // Enrich each plan entry with the real task data so the frontend doesn't need a second round trip
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+    const enrichedPlan = plan
+      .map(item => ({ ...taskById.get(item.taskId), reason: item.reason }))
+      .filter(item => item.id); // drop anything that somehow didn't map (shouldn't happen given validation, but cheap to guard)
+
+    res.json({ summary, plan: enrichedPlan });
+  } catch (err) {
+    console.error('AI plan my day failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
+  }
+});
+
 // ===== AI (foundation only — real features come in Phase 8) =====
 
 

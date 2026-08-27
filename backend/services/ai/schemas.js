@@ -101,3 +101,54 @@ module.exports = {
   PRIORITY_RECOMMENDATION_SCHEMA,
   validatePriorityRecommendation
 };
+
+const PLAN_MY_DAY_SCHEMA = {
+  type: 'object',
+  properties: {
+    summary: { type: 'string' },
+    plan: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          taskId: { type: 'string' },
+          reason: { type: 'string' }
+        },
+        required: ['taskId', 'reason']
+      }
+    }
+  },
+  required: ['plan']
+};
+
+// validTaskIds guards against a hallucinated id that was never actually sent to the model
+function validatePlanMyDay(data, validTaskIds) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.plan)) {
+    throw new Error('AI response was not in the expected format');
+  }
+
+  const summary = (typeof data.summary === 'string' && data.summary.trim())
+    ? data.summary.trim().slice(0, 200)
+    : '';
+
+  const plan = data.plan
+    .filter(item => item && typeof item.taskId === 'string' && validTaskIds.has(item.taskId))
+    .map(item => ({
+      taskId: item.taskId,
+      reason: (typeof item.reason === 'string' ? item.reason.trim() : '').slice(0, 200)
+    }))
+    .slice(0, 10); // hard cap regardless of how many the model tried to include
+
+  return { summary, plan };
+}
+
+module.exports = {
+  TASK_BREAKDOWN_RESPONSE_SCHEMA,
+  validateTaskBreakdown,
+  SMART_TASK_RESPONSE_SCHEMA,
+  validateSmartTask,
+  PRIORITY_RECOMMENDATION_SCHEMA,
+  validatePriorityRecommendation,
+  PLAN_MY_DAY_SCHEMA,
+  validatePlanMyDay
+};
