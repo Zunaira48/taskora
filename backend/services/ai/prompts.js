@@ -79,3 +79,39 @@ module.exports = {
   buildPriorityRecommendationPrompt,
   buildPlanMyDayPrompt
 };
+
+function buildCopilotPrompt(userMessage, history, context) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+  const taskList = context.openTasks.length === 0
+    ? '(no open tasks)'
+    : context.openTasks.map(t =>
+        `- "${t.title}" | priority: ${t.priority} | status: ${t.status} | due: ${t.dueDate || 'none'}`
+      ).join('\n');
+
+  const historyText = history.map(turn =>
+    `${turn.role === 'user' ? 'User' : 'Taskora'}: ${turn.content}`
+  ).join('\n');
+
+  return `You are Taskora Copilot, a productivity assistant with access to this person's current task data. Be concise, direct, and practical — a few sentences, not an essay, unless the question genuinely needs more detail.
+
+Today is ${dayName}, ${today}.
+
+Their current open tasks:
+${taskList}
+
+This week: ${context.completedThisWeek} completed, ${context.createdThisWeek} created, ${context.overdueCount} currently overdue.
+
+${historyText ? `Conversation so far:\n${historyText}\n` : ''}
+User: ${userMessage}
+
+Respond directly to what they asked, grounded only in the task data above. If asked to break a task into subtasks, you can suggest a short list in plain text. Never invent tasks that aren't in the list above.`;
+}
+
+module.exports = {
+  buildTaskBreakdownPrompt, buildSmartTaskPrompt,
+  buildPriorityRecommendationPrompt, buildPlanMyDayPrompt,
+  buildCopilotPrompt
+};

@@ -840,6 +840,63 @@ function startReminderCheck() {
   reminderIntervalId = setInterval(checkDueTasks, 60000);
 }
 
+let copilotHistory = [];
+
+function openCopilotPanel() {
+  document.getElementById("copilotPanel").classList.add("copilot-panel--open");
+  document.getElementById("copilotInput").focus();
+}
+
+function closeCopilotPanel() {
+  document.getElementById("copilotPanel").classList.remove("copilot-panel--open");
+}
+
+function appendCopilotMessage(role, content) {
+  const messagesEl = document.getElementById("copilotMessages");
+  const bubble = document.createElement("div");
+  bubble.className = `copilot-message copilot-message--${role}`;
+  bubble.textContent = content;
+  messagesEl.appendChild(bubble);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function handleCopilotSend() {
+  const input = document.getElementById("copilotInput");
+  const message = input.value.trim();
+  if (!message) return;
+
+  appendCopilotMessage("user", message);
+  input.value = "";
+
+  const sendBtn = document.getElementById("copilotSendBtn");
+  sendBtn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/copilot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, history: copilotHistory })
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      appendCopilotMessage("assistant", data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const { reply } = await res.json();
+    appendCopilotMessage("assistant", reply);
+
+    copilotHistory.push({ role: "user", content: message });
+    copilotHistory.push({ role: "assistant", content: reply });
+    copilotHistory = copilotHistory.slice(-10); // keep client-side history bounded too
+  } catch (err) {
+    appendCopilotMessage("assistant", "AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
 // ===== STARTUP =====
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -858,6 +915,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("quickAddBtn").addEventListener("click", () => openModal());
   document.getElementById("smartAddBtn").addEventListener("click", openSmartAddModal);
   document.getElementById("planMyDayBtn").addEventListener("click", handlePlanMyDay);
+  document.getElementById("copilotFab").addEventListener("click", openCopilotPanel);
+  document.getElementById("copilotClose").addEventListener("click", closeCopilotPanel);
+  document.getElementById("copilotSendBtn").addEventListener("click", handleCopilotSend);
+  document.getElementById("copilotInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleCopilotSend();
+  });
   document.getElementById("planMyDayModalClose").addEventListener("click", closePlanMyDayModal);
   document.getElementById("planMyDayModalOverlay").addEventListener("click", (e) => {
     if (e.target.id === "planMyDayModalOverlay") closePlanMyDayModal();

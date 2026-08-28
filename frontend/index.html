@@ -383,6 +383,20 @@
     </div>
   </div>
 
+  <button class="copilot-fab" id="copilotFab" aria-label="Open Taskora Copilot">✨</button>
+
+  <div class="copilot-panel" id="copilotPanel">
+    <div class="copilot-panel__header">
+      <span>Taskora Copilot</span>
+      <button class="modal__close" id="copilotClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="copilot-panel__messages" id="copilotMessages"></div>
+    <div class="copilot-panel__input-row">
+      <input type="text" id="copilotInput" class="input" placeholder="Ask about your tasks…" />
+      <button class="btn btn--primary" id="copilotSendBtn" type="button">Send</button>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="notesModalOverlay">
     <div class="modal notepad">
       <div class="notepad__header">

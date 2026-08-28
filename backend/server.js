@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const { pool } = require('./db');
 const { hashPassword, comparePassword, signToken, COOKIE_OPTIONS } = require('./auth');
 const requireAuth = require('./middleware/requireAuth');
-const { generalLimiter, authLimiter, aiLimiter } = require('./middleware/rateLimiters');
+const { generalLimiter, authLimiter, aiLimiter, copilotLimiter } = require('./middleware/rateLimiters');
 const aiService = require('./services/ai/aiService');
 
 const app = express();
@@ -341,6 +341,59 @@ app.post('/api/ai/plan-my-day', requireAuth, aiLimiter, async (req, res) => {
     res.json({ summary, plan: enrichedPlan });
   } catch (err) {
     console.error('AI plan my day failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
+  }
+});
+
+
+app.post('/api/ai/copilot', requireAuth, copilotLimiter, async (req, res) => {
+  try {
+    const { message, history } = req.body;
+
+    if (!message || !message.trim() || message.length > 500) {
+      return res.status(400).json({ error: 'A message is required (max 500 characters)' });
+    }
+
+    // Sanitize and cap the client-supplied history — never trust its shape or size
+    const safeHistory = Array.isArray(history)
+      ? history
+          .filter(turn => turn && (turn.role === 'user' || turn.role === 'assistant') && typeof turn.content === 'string')
+          .slice(-10)
+          .map(turn => ({ role: turn.role, content: turn.content.slice(0, 500) }))
+      : [];
+
+    const [openTasksResult, statsResult] = await Promise.all([
+      pool.query(
+        `SELECT title AS "Title", priority AS "Priority", status AS "Status", due_date AS "DueDate"
+         FROM tasks
+         WHERE user_id = $1 AND status != 'done'
+         ORDER BY due_date ASC NULLS LAST, created_at DESC
+         LIMIT 20`,
+        [req.userId]
+      ),
+      pool.query(
+        `SELECT
+           COUNT(*) FILTER (WHERE status = 'done' AND updated_at >= NOW() - INTERVAL '7 days') AS completed_this_week,
+           COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS created_this_week,
+           COUNT(*) FILTER (WHERE status != 'done' AND due_date < CURRENT_DATE) AS overdue_count
+         FROM tasks WHERE user_id = $1`,
+        [req.userId]
+      )
+    ]);
+
+    const context = {
+      openTasks: openTasksResult.rows.map(row => ({
+        title: row.Title, priority: row.Priority, status: row.Status, dueDate: row.DueDate
+      })),
+      completedThisWeek: Number(statsResult.rows[0].completed_this_week),
+      createdThisWeek: Number(statsResult.rows[0].created_this_week),
+      overdueCount: Number(statsResult.rows[0].overdue_count)
+    };
+
+    const reply = await aiService.chatWithCopilot(message.trim(), safeHistory, context);
+    res.json({ reply });
+  } catch (err) {
+    console.error('AI copilot failed:', err.message);
     res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
   }
 });

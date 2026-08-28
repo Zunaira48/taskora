@@ -29,3 +29,13 @@ const aiLimiter = rateLimit({
 });
 
 module.exports = { generalLimiter, authLimiter, aiLimiter };
+
+const copilotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40, // conversational — allow more turns than the single-shot AI features
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Copilot request limit reached, please try again later' }
+});
+
+module.exports = { generalLimiter, authLimiter, aiLimiter, copilotLimiter };
