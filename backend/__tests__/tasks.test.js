@@ -67,6 +67,15 @@ describe('PUT /api/tasks/:id', () => {
 
     expect(res.status).toBe(404);
   });
+    test('handles a malformed (non-UUID) id without leaking a stack trace', async () => {
+    pool.query.mockRejectedValueOnce(new Error('invalid input syntax for type uuid: "not-a-uuid"'));
+
+    const res = await request(app).put('/api/tasks/not-a-uuid').set('Cookie', authCookie).send({ status: 'done' });
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('Failed to update task');
+    expect(res.body.error).not.toMatch(/uuid/i); // the raw Postgres error text must never reach the client
+  });
 });
 
 describe('DELETE /api/tasks/:id', () => {

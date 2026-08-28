@@ -37,3 +37,15 @@ describe('POST /api/activity', () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe('User isolation', () => {
+  test('GET /api/activity scopes the query to the logged-in user', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    await request(app).get('/api/activity').set('Cookie', authCookie);
+
+    const [queryText, params] = pool.query.mock.calls[0];
+    expect(queryText).toMatch(/WHERE user_id = \$1/);
+    expect(params).toEqual(['user-1']);
+  });
+});
