@@ -7,7 +7,8 @@ jest.mock('../services/ai/aiService', () => ({
   extractSmartTask: jest.fn(),
   recommendPriority: jest.fn(),
   planMyDay: jest.fn(),
-  chatWithCopilot: jest.fn()
+  chatWithCopilot: jest.fn(),
+  weeklyReview: jest.fn()
 }));
 
 const request = require('supertest');
@@ -227,6 +228,68 @@ describe('POST /api/ai/copilot', () => {
     aiService.chatWithCopilot.mockRejectedValueOnce(new Error('Gemini timeout'));
 
     const res = await request(app).post('/api/ai/copilot').set('Cookie', authCookie).send({ message: 'hi' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/temporarily unavailable/i);
+  });
+});
+
+describe('POST /api/ai/weekly-review', () => {
+  test('rejects requests with no session cookie', async () => {
+    const res = await request(app).post('/api/ai/weekly-review');
+    expect(res.status).toBe(401);
+  });
+
+  test('scopes both stats queries to the logged-in user', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ completed_this_week: '1', created_this_week: '15', overdue_count: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ category: 'Work', completed: '1', overdue: '0' }] });
+    aiService.weeklyReview.mockResolvedValueOnce({ insight: 'Test insight', recommendations: ['Do this'] });
+
+    await request(app).post('/api/ai/weekly-review').set('Cookie', authCookie);
+
+    const [firstQuery, firstParams] = pool.query.mock.calls[0];
+    const [secondQuery, secondParams] = pool.query.mock.calls[1];
+    expect(firstQuery).toMatch(/WHERE user_id = \$1/);
+    expect(firstParams).toEqual(['user-1']);
+    expect(secondQuery).toMatch(/WHERE user_id = \$1/);
+    expect(secondParams).toEqual(['user-1']);
+  });
+
+  test('computes completion rate correctly and returns AI insight', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ completed_this_week: '3', created_this_week: '6', overdue_count: '1' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    aiService.weeklyReview.mockResolvedValueOnce({
+      insight: 'Solid progress this week.', recommendations: ['Keep it up']
+    });
+
+    const res = await request(app).post('/api/ai/weekly-review').set('Cookie', authCookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.completionRate).toBe(50);
+    expect(res.body.insight).toBe('Solid progress this week.');
+  });
+
+  test('handles zero created-this-week without dividing by zero', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ completed_this_week: '0', created_this_week: '0', overdue_count: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    aiService.weeklyReview.mockResolvedValueOnce({ insight: 'Quiet week.', recommendations: [] });
+
+    const res = await request(app).post('/api/ai/weekly-review').set('Cookie', authCookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.completionRate).toBe(0);
+  });
+
+  test('returns 503 when the AI call fails', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ completed_this_week: '0', created_this_week: '0', overdue_count: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    aiService.weeklyReview.mockRejectedValueOnce(new Error('Gemini timeout'));
+
+    const res = await request(app).post('/api/ai/weekly-review').set('Cookie', authCookie);
 
     expect(res.status).toBe(503);
     expect(res.body.error).toMatch(/temporarily unavailable/i);

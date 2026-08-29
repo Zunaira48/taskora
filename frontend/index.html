@@ -179,7 +179,32 @@
     <section id="page-statistics" class="page page--hidden">
       <header class="dashboard__header">
         <h1 class="dashboard__greeting">Statistics</h1>
+        <button class="btn" type="button" id="weeklyReviewBtn">✨ Weekly Review</button>
       </header>
+
+      <div class="panel" id="weeklyReviewPanel" style="display: none; margin-bottom: 16px;">
+        <h2 class="panel__title">This Week</h2>
+        <div class="dashboard__stats" style="margin-bottom: 16px;">
+          <div class="stat-card">
+            <p class="stat-card__label">Completed</p>
+            <p class="stat-card__value" id="reviewCompleted">0</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__label">Created</p>
+            <p class="stat-card__value" id="reviewCreated">0</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-card__label">Completion rate</p>
+            <p class="stat-card__value" id="reviewRate">0%</p>
+          </div>
+          <div class="stat-card stat-card--danger">
+            <p class="stat-card__label">Overdue</p>
+            <p class="stat-card__value" id="reviewOverdue">0</p>
+          </div>
+        </div>
+        <p id="reviewInsight" style="font-size: 0.9rem; margin-bottom: 10px;"></p>
+        <ul id="reviewRecommendations" style="padding-left: 18px; font-size: 0.85rem;"></ul>
+      </div>
 
       <div class="stats-grid">
         <div class="panel stats-panel">

@@ -152,3 +152,36 @@ module.exports = {
   PLAN_MY_DAY_SCHEMA,
   validatePlanMyDay
 };
+
+const WEEKLY_REVIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    insight: { type: 'string' },
+    recommendations: { type: 'array', items: { type: 'string' } }
+  },
+  required: ['insight', 'recommendations']
+};
+
+function validateWeeklyReview(data) {
+  if (!data || typeof data !== 'object' || typeof data.insight !== 'string') {
+    throw new Error('AI response was not in the expected format');
+  }
+
+  const insight = data.insight.trim().slice(0, 500);
+  const recommendations = Array.isArray(data.recommendations)
+    ? data.recommendations
+        .filter(r => typeof r === 'string' && r.trim())
+        .map(r => r.trim().slice(0, 200))
+        .slice(0, 3)
+    : [];
+
+  return { insight, recommendations };
+}
+
+module.exports = {
+  TASK_BREAKDOWN_RESPONSE_SCHEMA, validateTaskBreakdown,
+  SMART_TASK_RESPONSE_SCHEMA, validateSmartTask,
+  PRIORITY_RECOMMENDATION_SCHEMA, validatePriorityRecommendation,
+  PLAN_MY_DAY_SCHEMA, validatePlanMyDay,
+  WEEKLY_REVIEW_SCHEMA, validateWeeklyReview
+};

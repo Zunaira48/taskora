@@ -398,6 +398,49 @@ app.post('/api/ai/copilot', requireAuth, copilotLimiter, async (req, res) => {
   }
 });
 
+app.post('/api/ai/weekly-review', requireAuth, aiLimiter, async (req, res) => {
+  try {
+    const [statsResult, categoryResult] = await Promise.all([
+      pool.query(
+        `SELECT
+           COUNT(*) FILTER (WHERE status = 'done' AND updated_at >= NOW() - INTERVAL '7 days') AS completed_this_week,
+           COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS created_this_week,
+           COUNT(*) FILTER (WHERE status != 'done' AND due_date < CURRENT_DATE) AS overdue_count
+         FROM tasks WHERE user_id = $1`,
+        [req.userId]
+      ),
+      pool.query(
+        `SELECT category,
+           COUNT(*) FILTER (WHERE status = 'done' AND updated_at >= NOW() - INTERVAL '7 days') AS completed,
+           COUNT(*) FILTER (WHERE status != 'done' AND due_date < CURRENT_DATE) AS overdue
+         FROM tasks
+         WHERE user_id = $1
+         GROUP BY category`,
+        [req.userId]
+      )
+    ]);
+
+    const row = statsResult.rows[0];
+    const completedThisWeek = Number(row.completed_this_week);
+    const createdThisWeek = Number(row.created_this_week);
+    const overdueCount = Number(row.overdue_count);
+    const completionRate = createdThisWeek === 0 ? 0 : Math.round((completedThisWeek / createdThisWeek) * 100);
+
+    const categoryBreakdown = categoryResult.rows.map(r => ({
+      category: r.category, completed: Number(r.completed), overdue: Number(r.overdue)
+    }));
+
+    const { insight, recommendations } = await aiService.weeklyReview({
+      completedThisWeek, createdThisWeek, completionRate, overdueCount, categoryBreakdown
+    });
+
+    res.json({ completedThisWeek, createdThisWeek, completionRate, overdueCount, insight, recommendations });
+  } catch (err) {
+    console.error('AI weekly review failed:', err.message);
+    res.status(503).json({ error: 'AI is temporarily unavailable. Your Taskora data is safe.' });
+  }
+});
+
 // ===== AI (foundation only — real features come in Phase 8) =====
 
 

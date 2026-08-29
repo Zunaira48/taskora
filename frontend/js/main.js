@@ -897,6 +897,40 @@ async function handleCopilotSend() {
   }
 }
 
+async function handleWeeklyReview() {
+  const btn = document.getElementById("weeklyReviewBtn");
+  const originalText = btn.textContent;
+  btn.textContent = "Thinking…";
+  btn.disabled = true;
+
+  try {
+    const res = await safeFetch(`${API_BASE}/ai/weekly-review`, { method: "POST" });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      return;
+    }
+
+    const { completedThisWeek, createdThisWeek, completionRate, overdueCount, insight, recommendations } = await res.json();
+
+    document.getElementById("reviewCompleted").textContent = completedThisWeek;
+    document.getElementById("reviewCreated").textContent = createdThisWeek;
+    document.getElementById("reviewRate").textContent = `${completionRate}%`;
+    document.getElementById("reviewOverdue").textContent = overdueCount;
+    document.getElementById("reviewInsight").textContent = insight;
+    document.getElementById("reviewRecommendations").innerHTML =
+      recommendations.map(r => `<li>${r}</li>`).join("");
+
+    document.getElementById("weeklyReviewPanel").style.display = "block";
+  } catch (err) {
+    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
 // ===== STARTUP =====
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -914,7 +948,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("quickAddBtn").addEventListener("click", () => openModal());
   document.getElementById("smartAddBtn").addEventListener("click", openSmartAddModal);
-  document.getElementById("planMyDayBtn").addEventListener("click", handlePlanMyDay);
+  document.getElementById("planMyDayBtn").addEventListener("click", handlePlanMyDay);  
+  document.getElementById("weeklyReviewBtn").addEventListener("click", handleWeeklyReview);
   document.getElementById("copilotFab").addEventListener("click", openCopilotPanel);
   document.getElementById("copilotClose").addEventListener("click", closeCopilotPanel);
   document.getElementById("copilotSendBtn").addEventListener("click", handleCopilotSend);

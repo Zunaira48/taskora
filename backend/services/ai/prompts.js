@@ -115,3 +115,29 @@ module.exports = {
   buildPriorityRecommendationPrompt, buildPlanMyDayPrompt,
   buildCopilotPrompt
 };
+
+function buildWeeklyReviewPrompt(stats) {
+  const categoryLines = stats.categoryBreakdown.length === 0
+    ? '(no category data yet)'
+    : stats.categoryBreakdown.map(c =>
+        `- ${c.category}: ${c.completed} completed, ${c.overdue} overdue`
+      ).join('\n');
+
+  return `You are a productivity coach reviewing someone's task activity from the past 7 days.
+
+Completed this week: ${stats.completedThisWeek}
+Created this week: ${stats.createdThisWeek}
+Completion rate: ${stats.completionRate}%
+Currently overdue: ${stats.overdueCount}
+
+Breakdown by category:
+${categoryLines}
+
+Write a short, honest insight (2-3 sentences) about their productivity pattern this week — look specifically for imbalances between categories (e.g. consistently completing one type of work while another type accumulates overdue items). Then give 1 to 3 short, concrete, actionable recommendations for next week. Be direct and specific, not generic motivational language.`;
+}
+
+module.exports = {
+  buildTaskBreakdownPrompt, buildSmartTaskPrompt,
+  buildPriorityRecommendationPrompt, buildPlanMyDayPrompt,
+  buildCopilotPrompt, buildWeeklyReviewPrompt
+};

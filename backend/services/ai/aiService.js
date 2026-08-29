@@ -2,13 +2,14 @@ const geminiProvider = require('./geminiProvider');
 const {
   buildTaskBreakdownPrompt, buildSmartTaskPrompt,
   buildPriorityRecommendationPrompt, buildPlanMyDayPrompt,
-  buildCopilotPrompt
+  buildCopilotPrompt, buildWeeklyReviewPrompt
 } = require('./prompts');
 const {
   TASK_BREAKDOWN_RESPONSE_SCHEMA, validateTaskBreakdown,
   SMART_TASK_RESPONSE_SCHEMA, validateSmartTask,
   PRIORITY_RECOMMENDATION_SCHEMA, validatePriorityRecommendation,
-  PLAN_MY_DAY_SCHEMA, validatePlanMyDay
+  PLAN_MY_DAY_SCHEMA, validatePlanMyDay,
+  WEEKLY_REVIEW_SCHEMA, validateWeeklyReview
 } = require('./schemas');
 
 async function ping(prompt) {
@@ -44,7 +45,16 @@ async function chatWithCopilot(userMessage, history, context) {
   const prompt = buildCopilotPrompt(userMessage, history, context);
   const reply = await geminiProvider.generateText(prompt);
   const plainText = reply.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
-  return plainText.trim().slice(0, 2000); // hard cap on response length regardless of what the model returns
+  return plainText.trim().slice(0, 2000);
 }
 
-module.exports = { ping, breakdownTask, extractSmartTask, recommendPriority, planMyDay, chatWithCopilot };
+async function weeklyReview(stats) {
+  const prompt = buildWeeklyReviewPrompt(stats);
+  const data = await geminiProvider.generateJSON(prompt, WEEKLY_REVIEW_SCHEMA);
+  return validateWeeklyReview(data);
+}
+
+module.exports = {
+  ping, breakdownTask, extractSmartTask, recommendPriority,
+  planMyDay, chatWithCopilot, weeklyReview
+};
