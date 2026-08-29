@@ -92,11 +92,36 @@ async function initializeApp() {
 // ===== CORE APP LOGIC =====
 
 async function refreshUI() {
+  await updateGreeting();
   await renderTaskList();
   await renderStats();
   await renderActivity();
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Hey, night owl";
+}
+
+async function updateGreeting() {
+  document.getElementById("dashboardGreeting").textContent = getGreeting();
+
+  const tasks = await getAllTasks();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const dueToday = tasks.filter(t => t.dueDate === todayStr && t.status !== "done").length;
+
+  const subtextEl = document.getElementById("dashboardSubtext");
+  if (dueToday === 0) {
+    subtextEl.textContent = "You have no tasks due today.";
+  } else if (dueToday === 1) {
+    subtextEl.textContent = "You have 1 task due today.";
+  } else {
+    subtextEl.textContent = `You have ${dueToday} tasks due today.`;
+  }
+}
 async function seedTasksIfEmpty() {
   const existing = await getAllTasks();
   if (existing.length > 0) return;
@@ -734,6 +759,7 @@ async function handleClearData() {
 
   await refreshUI();
 }
+
 
 let calendarDate = new Date();
 calendarDate.setDate(1);
