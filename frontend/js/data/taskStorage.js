@@ -31,7 +31,7 @@ async function getAllTasks() {
     const res = await safeFetch(`${API_BASE}/tasks`);
     if (res.status === 401) { handleSessionExpired(); return []; }
     const data = await res.json();
-    return data.map(mapTaskFromApi);
+    return data.tasks.map(mapTaskFromApi);
   } catch {
     return [];
   }
