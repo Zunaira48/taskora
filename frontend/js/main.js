@@ -6,6 +6,17 @@ function hideBackendError() {
   document.getElementById("backendBanner").classList.remove("backend-banner--visible");
 }
 
+function showToast(message, type = "error") {
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  toast.className = `toast toast--${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 4000);
+}
 // ===== AUTH GATE =====
 
 function showAuthScreen() {
@@ -286,7 +297,7 @@ async function handleAiBreakdown() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      showToast(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
       return;
     }
 
@@ -301,7 +312,7 @@ async function handleAiBreakdown() {
 
     document.getElementById("aiBreakdownResults").style.display = "block";
   } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+    showToast("AI is temporarily unavailable. Your Taskora data is safe.");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -338,7 +349,7 @@ async function handleAiPriorityRecommend() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      showToast(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
       return;
     }
 
@@ -348,7 +359,7 @@ async function handleAiPriorityRecommend() {
     document.getElementById("aiPrioritySuggestion").dataset.recommended = recommendedPriority;
     document.getElementById("aiPrioritySuggestion").style.display = "block";
   } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+    showToast("AI is temporarily unavailable. Your Taskora data is safe.");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -394,7 +405,7 @@ async function handleSmartAddExtract() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      showToast(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
       return;
     }
 
@@ -406,7 +417,7 @@ async function handleSmartAddExtract() {
     document.getElementById("smartLabels").value = extracted.labels.join(", ");
     document.getElementById("smartAddReview").style.display = "block";
   } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+    showToast("AI is temporarily unavailable. Your Taskora data is safe.");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -448,7 +459,7 @@ async function handlePlanMyDay() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      showToast(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
       return;
     }
 
@@ -469,7 +480,7 @@ async function handlePlanMyDay() {
 
     openPlanMyDayModal();
   } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+    showToast("AI is temporarily unavailable. Your Taskora data is safe.");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -908,7 +919,7 @@ async function handleWeeklyReview() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
+      showToast(data.error || "AI is temporarily unavailable. Your Taskora data is safe.");
       return;
     }
 
@@ -924,7 +935,7 @@ async function handleWeeklyReview() {
 
     document.getElementById("weeklyReviewPanel").style.display = "block";
   } catch (err) {
-    alert("AI is temporarily unavailable. Your Taskora data is safe.");
+    showToast("AI is temporarily unavailable. Your Taskora data is safe.");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
