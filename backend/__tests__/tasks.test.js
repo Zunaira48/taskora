@@ -15,14 +15,50 @@ describe('GET /api/tasks', () => {
     expect(res.status).toBe(401);
   });
 
-  test('returns tasks for the logged-in user', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [{ Id: 't1', Title: 'Test task' }] });
+  test('returns tasks for the logged-in user with pagination metadata', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ Id: 't1', Title: 'Test task' }] })
+      .mockResolvedValueOnce({ rows: [{ total: '1' }] });
 
     const res = await request(app).get('/api/tasks').set('Cookie', authCookie);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].Title).toBe('Test task');
+    expect(res.body.tasks).toHaveLength(1);
+    expect(res.body.tasks[0].Title).toBe('Test task');
+    expect(res.body.total).toBe(1);
+    expect(res.body.limit).toBe(100);
+    expect(res.body.offset).toBe(0);
+  });
+
+  test('respects a valid limit and offset query param', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] });
+
+    await request(app).get('/api/tasks?limit=10&offset=20').set('Cookie', authCookie);
+
+    const [, tasksParams] = pool.query.mock.calls[0];
+    expect(tasksParams).toEqual(['user-1', 10, 20]);
+  });
+
+  test('caps an excessively large limit at the maximum allowed', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] });
+
+    const res = await request(app).get('/api/tasks?limit=999999').set('Cookie', authCookie);
+
+    expect(res.body.limit).toBe(200);
+  });
+
+  test('ignores an invalid (non-numeric) limit and falls back to the default', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] });
+
+    const res = await request(app).get('/api/tasks?limit=not-a-number').set('Cookie', authCookie);
+
+    expect(res.body.limit).toBe(100);
   });
 });
 
@@ -96,13 +132,15 @@ describe('DELETE /api/tasks/:id', () => {
 
 describe('User isolation', () => {
   test('GET /api/tasks scopes the query to the logged-in user', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [] });
+    pool.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] });
 
     await request(app).get('/api/tasks').set('Cookie', authCookie);
 
     const [queryText, params] = pool.query.mock.calls[0];
     expect(queryText).toMatch(/WHERE user_id = \$1/);
-    expect(params).toEqual(['user-1']);
+    expect(params[0]).toBe('user-1');
   });
 
   test('PUT /api/tasks/:id includes user_id in the WHERE clause, not just the task id', async () => {

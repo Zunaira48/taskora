@@ -100,16 +100,36 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 
 // ===== TASKS (all protected, all scoped to the logged-in user) =====
 
+const DEFAULT_TASKS_LIMIT = 100;
+const MAX_TASKS_LIMIT = 200;
+
 app.get('/api/tasks', requireAuth, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id AS "Id", title AS "Title", category AS "Category", priority AS "Priority",
-              status AS "Status", due_date AS "DueDate", labels AS "Labels", notes AS "Notes",
-              created_at AS "CreatedAt", updated_at AS "UpdatedAt"
-       FROM tasks WHERE user_id = $1 ORDER BY created_at DESC`,
-      [req.userId]
-    );
-    res.json(result.rows);
+    let limit = parseInt(req.query.limit, 10);
+    if (!Number.isFinite(limit) || limit <= 0) limit = DEFAULT_TASKS_LIMIT;
+    limit = Math.min(limit, MAX_TASKS_LIMIT);
+
+    let offset = parseInt(req.query.offset, 10);
+    if (!Number.isFinite(offset) || offset < 0) offset = 0;
+
+    const [tasksResult, countResult] = await Promise.all([
+      pool.query(
+        `SELECT id AS "Id", title AS "Title", category AS "Category", priority AS "Priority",
+                status AS "Status", due_date AS "DueDate", labels AS "Labels", notes AS "Notes",
+                created_at AS "CreatedAt", updated_at AS "UpdatedAt"
+         FROM tasks WHERE user_id = $1 ORDER BY created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [req.userId, limit, offset]
+      ),
+      pool.query('SELECT COUNT(*) AS total FROM tasks WHERE user_id = $1', [req.userId])
+    ]);
+
+    res.json({
+      tasks: tasksResult.rows,
+      total: Number(countResult.rows[0].total),
+      limit,
+      offset
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch tasks' });
