@@ -10,6 +10,8 @@ const aiService = require('./services/ai/aiService');
 
 const app = express();
 
+app.set('trust proxy', 1); // Render sits behind a reverse proxy — this tells Express to trust the X-Forwarded-For header it sets, so express-rate-limit can correctly identify each client
+
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL, // must be an exact origin (not '*') when credentials are used
