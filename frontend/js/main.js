@@ -17,6 +17,24 @@ function showToast(message, type = "error") {
     toast.remove();
   }, 4000);
 }
+
+// Prevents duplicate clicks: disables the button, shows a spinner + loading text,
+// runs the action, then always restores the button — whether it succeeded or failed.
+async function withButtonLoading(btn, action, loadingText = "Please wait…") {
+  if (!btn || btn.disabled) return; // already in-flight — ignore the extra click entirely
+  const originalHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.classList.add("btn--loading");
+  btn.innerHTML = `<span class="btn-spinner"></span>${loadingText}`;
+
+  try {
+    await action();
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("btn--loading");
+    btn.innerHTML = originalHTML;
+  }
+}
 // ===== AUTH GATE =====
 
 function showAuthScreen() {
@@ -53,27 +71,33 @@ function toggleAuthMode(e) {
 
 async function handleAuthFormSubmit(e) {
   e.preventDefault();
+  const submitBtn = document.getElementById("authSubmitBtn");
   const email = document.getElementById("authEmail").value.trim();
   const password = document.getElementById("authPassword").value;
   const errorEl = document.getElementById("authError");
   errorEl.textContent = "";
 
-  try {
-    const result = isRegisterMode
-      ? await registerAccount(email, password)
-      : await loginAccount(email, password);
+  await withButtonLoading(submitBtn, async () => {
+    try {
+      const result = isRegisterMode
+        ? await registerAccount(email, password)
+        : await loginAccount(email, password);
 
-    showApp(result.email);
-    await initializeApp();
-  } catch (err) {
-    errorEl.textContent = err.message;
-  }
+      showApp(result.email);
+      await initializeApp();
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  }, isRegisterMode ? "Creating account…" : "Logging in…");
 }
 
 async function handleLogout() {
-  await logoutAccount();
-  showAuthScreen();
-  document.getElementById("authForm").reset();
+  const btn = document.getElementById("logoutBtn");
+  await withButtonLoading(btn, async () => {
+    await logoutAccount();
+    showAuthScreen();
+    document.getElementById("authForm").reset();
+  }, "");
 }
 
 async function initializeApp() {
@@ -207,25 +231,32 @@ async function attachTaskListeners() {
     checkbox.addEventListener("change", async (e) => {
       const id = e.target.dataset.id;
       const newStatus = e.target.checked ? "done" : "todo";
-      const allTasks = await getAllTasks();
-      const task = allTasks.find(t => t.id === id);
-      await updateTask(id, { status: newStatus });
+      checkbox.disabled = true; // checkboxes don't get the loading-text treatment, just disable during the request
+      try {
+        const allTasks = await getAllTasks();
+        const task = allTasks.find(t => t.id === id);
+        await updateTask(id, { status: newStatus });
 
-      if (newStatus === "done") {
-        await logActivity(`Completed "${task.title}"`);
+        if (newStatus === "done") {
+          await logActivity(`Completed "${task.title}"`);
+        }
+        await refreshUI();
+      } finally {
+        checkbox.disabled = false;
       }
-      await refreshUI();
     });
   });
 
   document.querySelectorAll(".task-item__delete").forEach(btn => {
     btn.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-      const allTasks = await getAllTasks();
-      const task = allTasks.find(t => t.id === id);
-      await deleteTask(id);
-      await logActivity(`Deleted "${task.title}"`);
-      await refreshUI();
+      await withButtonLoading(e.currentTarget, async () => {
+        const id = e.currentTarget.dataset.id;
+        const allTasks = await getAllTasks();
+        const task = allTasks.find(t => t.id === id);
+        await deleteTask(id);
+        await logActivity(`Deleted "${task.title}"`);
+        await refreshUI();
+      }, "");
     });
   });
 
@@ -234,29 +265,33 @@ async function attachTaskListeners() {
       const id = e.target.dataset.id;
       const allTasks = await getAllTasks();
       const task = allTasks.find(t => t.id === id);
-      openModal(task);
+      openModal(task); // opens a modal, no network write — no loading state needed
     });
   });
 
   document.querySelectorAll(".task-item__start").forEach(btn => {
     btn.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-      const allTasks = await getAllTasks();
-      const task = allTasks.find(t => t.id === id);
-      await updateTask(id, { status: "in-progress" });
-      await logActivity(`Started "${task.title}"`);
-      await refreshUI();
+      await withButtonLoading(e.currentTarget, async () => {
+        const id = e.currentTarget.dataset.id;
+        const allTasks = await getAllTasks();
+        const task = allTasks.find(t => t.id === id);
+        await updateTask(id, { status: "in-progress" });
+        await logActivity(`Started "${task.title}"`);
+        await refreshUI();
+      }, "…");
     });
   });
 
   document.querySelectorAll(".task-item__status-pill").forEach(btn => {
     btn.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-      const allTasks = await getAllTasks();
-      const task = allTasks.find(t => t.id === id);
-      await updateTask(id, { status: "todo" });
-      await logActivity(`Moved "${task.title}" back to To do`);
-      await refreshUI();
+      await withButtonLoading(e.currentTarget, async () => {
+        const id = e.currentTarget.dataset.id;
+        const allTasks = await getAllTasks();
+        const task = allTasks.find(t => t.id === id);
+        await updateTask(id, { status: "todo" });
+        await logActivity(`Moved "${task.title}" back to To do`);
+        await refreshUI();
+      }, "…");
     });
   });
 }
@@ -345,17 +380,20 @@ async function handleAiBreakdown() {
 }
 
 async function handleAddSelectedSubtasks() {
+  const btn = document.getElementById("aiAddSelectedBtn");
   const checkboxes = document.querySelectorAll('#aiBreakdownList input[type="checkbox"]:checked');
   const category = document.getElementById("taskCategory").value.trim() || "General";
 
-  for (const checkbox of checkboxes) {
-    await addTask({ title: checkbox.value, category, priority: "medium" });
-    await logActivity(`Added task "${checkbox.value}"`);
-  }
+  await withButtonLoading(btn, async () => {
+    for (const checkbox of checkboxes) {
+      await addTask({ title: checkbox.value, category, priority: "medium" });
+      await logActivity(`Added task "${checkbox.value}"`);
+    }
 
-  hideAiBreakdownResults();
-  closeModal();
-  await refreshUI();
+    hideAiBreakdownResults();
+    closeModal();
+    await refreshUI();
+  }, "Adding…");
 }
 
 async function handleAiPriorityRecommend() {
@@ -453,16 +491,19 @@ async function handleSmartAddConfirm() {
   const title = document.getElementById("smartTitle").value.trim();
   if (!title) return;
 
+  const btn = document.getElementById("smartAddConfirmBtn");
   const category = document.getElementById("smartCategory").value.trim() || "General";
   const priority = document.getElementById("smartPriority").value;
   const dueDate = document.getElementById("smartDueDate").value || null;
   const labels = document.getElementById("smartLabels").value
     .split(",").map(l => l.trim()).filter(Boolean);
 
-  await addTask({ title, category, priority, dueDate, labels });
-  await logActivity(`Added task "${title}"`);
-  closeSmartAddModal();
-  await refreshUI();
+  await withButtonLoading(btn, async () => {
+    await addTask({ title, category, priority, dueDate, labels });
+    await logActivity(`Added task "${title}"`);
+    closeSmartAddModal();
+    await refreshUI();
+  }, "Adding…");
 }
 
 function openPlanMyDayModal() {
@@ -518,6 +559,7 @@ async function handleTaskFormSubmit(e) {
   const title = document.getElementById("taskTitle").value.trim();
   if (!title) return;
 
+  const submitBtn = document.getElementById("modalSubmitBtn");
   const category = document.getElementById("taskCategory").value.trim() || "General";
   const priority = document.getElementById("taskPriority").value;
   const dueDate = document.getElementById("taskDueDate").value || null;
@@ -525,16 +567,18 @@ async function handleTaskFormSubmit(e) {
     .split(",").map(l => l.trim()).filter(Boolean);
   const editingId = document.getElementById("editingTaskId").value;
 
-  if (editingId) {
-    await updateTask(editingId, { title, category, priority, dueDate, labels });
-    await logActivity(`Edited "${title}"`);
-  } else {
-    await addTask({ title, category, priority, dueDate, labels });
-    await logActivity(`Added task "${title}"`);
-  }
+  await withButtonLoading(submitBtn, async () => {
+    if (editingId) {
+      await updateTask(editingId, { title, category, priority, dueDate, labels });
+      await logActivity(`Edited "${title}"`);
+    } else {
+      await addTask({ title, category, priority, dueDate, labels });
+      await logActivity(`Added task "${title}"`);
+    }
 
-  closeModal();
-  await refreshUI();
+    closeModal();
+    await refreshUI();
+  }, editingId ? "Saving…" : "Adding…");
 }
 
 // ===== NOTES (task board only) =====
@@ -557,11 +601,15 @@ function closeNotesModal() {
 
 async function saveNotes() {
   if (!currentNotesTaskId) return;
+  const btn = document.getElementById("saveNotesBtn");
   const notes = document.getElementById("notesTextarea").value;
-  await updateTask(currentNotesTaskId, { notes });
-  await logActivity(`Updated notes`);
-  closeNotesModal();
-  await renderBoard();
+
+  await withButtonLoading(btn, async () => {
+    await updateTask(currentNotesTaskId, { notes });
+    await logActivity(`Updated notes`);
+    closeNotesModal();
+    await renderBoard();
+  }, "Saving…");
 }
 
 async function renderStats() {
@@ -681,13 +729,15 @@ async function renderBoard() {
 
   document.querySelectorAll(".board__card-actions button").forEach(btn => {
     btn.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-      const newStatus = e.target.dataset.status;
-      await updateTask(id, { status: newStatus });
-      const allTasks = await getAllTasks();
-      await logActivity(`Moved "${allTasks.find(t => t.id === id).title}" to ${newStatus}`);
-      await renderBoard();
-      await renderStats();
+      await withButtonLoading(e.currentTarget, async () => {
+        const id = e.currentTarget.dataset.id;
+        const newStatus = e.currentTarget.dataset.status;
+        await updateTask(id, { status: newStatus });
+        const allTasks = await getAllTasks();
+        await logActivity(`Moved "${allTasks.find(t => t.id === id).title}" to ${newStatus}`);
+        await renderBoard();
+        await renderStats();
+      }, "…");
     });
   });
 
@@ -752,12 +802,14 @@ async function handleClearData() {
   const confirmed = confirm("This will permanently delete all tasks. Continue?");
   if (!confirmed) return;
 
-  const tasks = await getAllTasks();
-  for (const task of tasks) {
-    await deleteTask(task.id);
-  }
-
-  await refreshUI();
+  const btn = document.getElementById("clearDataBtn");
+  await withButtonLoading(btn, async () => {
+    const tasks = await getAllTasks();
+    for (const task of tasks) {
+      await deleteTask(task.id);
+    }
+    await refreshUI();
+  }, "Clearing…");
 }
 
 
